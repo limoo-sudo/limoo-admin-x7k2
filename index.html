@@ -72,6 +72,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .tip{background:var(--card);border:1px solid var(--sel);border-radius:12px;padding:10px 12px;margin-top:14px;font-size:13px;line-height:1.7}.tip b{display:block;font-weight:400;font-size:11px;color:var(--mute)}
 .blk.pb{background:repeating-linear-gradient(135deg,var(--line) 0 6px,transparent 6px 12px);color:var(--fg);border:1px solid var(--line)}
 .blk.pb div,.blk.pb b{opacity:1}
+.kt-card{display:block;position:relative;width:100%;margin-top:16px;padding:16px 36px 16px 16px;border:1px solid var(--sel);border-radius:14px;background:var(--card);color:var(--fg);font:inherit;text-align:left;cursor:pointer}.kt-card:focus-visible{outline:2px solid var(--sel);outline-offset:3px}.kt-head{display:flex;align-items:center;gap:8px;font-size:16px}.kt-badge{border-radius:14px;background:var(--line);color:var(--mute);padding:2px 9px;font-size:11px}.kt-desc{display:block;margin-top:7px;font-size:12px;color:var(--mute)}.kt-arrow{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:24px;color:var(--mute)}.kt-topic{display:block;margin-top:12px;padding-top:9px;border-top:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}.kt-topic-label{display:block;color:var(--mute);font-size:11px;margin-bottom:3px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
@@ -222,9 +223,8 @@ function ktSum(r){const d=r.data||{},o=[],e=d.ext||{},p=d.perm||{},w=d.brow||{};
  if((d.kinds||[]).includes('perm')&&(p.rod||p.t1||p.t2||p.mood))o.push([p.rod,(p.t1||p.t2)?`${p.t1||'-'}/${p.t2||'-'}分`:'',p.mood].filter(Boolean).join(' '));if((d.kinds||[]).includes('brow')&&(w.form||w.thin||w.shape))o.push(['眉',w.thin?'間引き'+w.thin:'',w.shape||'',(w.form||'').replace(/\s+/g,' ').slice(0,14)].filter(Boolean).join(' '));
  const L=d.lower||{},F=d.face||{};if((d.kinds||[]).includes('lower')&&(L.seq||[]).length)o.push('下 '+seqSum(L));if((d.kinds||[]).includes('face')&&F.memo)o.push('フェイシャル '+F.memo.replace(/\s+/g,' ').slice(0,12));const X=d.other||{};if((d.kinds||[]).includes('other')&&X.memo)o.push(X.memo.replace(/\s+/g,' ').slice(0,14));
  const t=o.filter(Boolean).join(' / ');return t||'記録あり'}
-function ktBox(b){const kt=D.kt[b.id],pv=prevKt(b);let x='';
- if(pv&&(pv.k.next_topic||pv.k.talk))x+=`<div class="tip"><b>前回の話題</b>${esc(pv.k.next_topic||pv.k.talk)}</div>`;
- return x+`<button class="btn o" style="margin-top:12px" onclick="op({t:'kt',id:'${b.id}'})">${kt?'カルテを見る・編集':'カルテを書く'}</button>${kt?`<p class="mute" style="text-align:center;margin:6px 0 0">${esc(ktSum(kt))}</p>`:''}`}
+function ktBox(b){const kt=D.kt[b.id],pv=prevKt(b),topic=pv&&(pv.k.next_topic||pv.k.talk);
+ return `<button class="kt-card" onclick="op({t:'kt',id:'${b.id}'})"><span class="kt-head">カルテ<span class="kt-badge">${kt?'記録あり':'未記入'}</span></span><span class="kt-desc">${kt?'タップして施術内容を確認・編集':'タップして施術内容を記録'}</span>${kt?`<span class="kt-desc">${esc(ktSum(kt))}</span>`:''}${topic?`<span class="kt-topic"><span class="kt-topic-label">前回の話題</span>${esc(topic)}</span>`:''}<span class="kt-arrow" aria-hidden="true">›</span></button>`}
 const getP=p=>p.split('.').reduce((o,k)=>o?o[k]:undefined,S.kf);
 function setP(p,v){const ks=p.split('.'),l=ks.pop();let o=S.kf;ks.forEach(k=>{o[k]=o[k]||{};o=o[k]});o[l]=v}
 function ktTog(p,v,m){if(m){const a=getP(p)||[];setP(p,a.includes(v)?a.filter(x=>x!==v):[...a,v])}else setP(p,getP(p)===v?'':v);render()}
