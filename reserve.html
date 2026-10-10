@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>limoo ご予約</title>
+<style>
+:root{--bg:#faf8f3;--fg:#2b2b2b;--mute:#8a867d;--line:#e6e1d6;--card:#fff;--acc:#2b2b2b;--accfg:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}}
+:root[data-theme="dark"]{--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.6}
+#app{max-width:480px;margin:0 auto;padding:20px 20px 120px}
+header{text-align:center;padding:12px 0 8px}
+.logo{font-size:26px;letter-spacing:.3em;font-weight:200}
+.prog{display:flex;gap:4px;margin:14px 0 6px}.prog i{flex:1;height:2px;background:var(--line)}.prog i.on{background:var(--fg)}
+h2{font-weight:300;font-size:19px;margin:22px 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 16px}
+.card{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:14px;padding:16px 18px;margin:0 0 10px;font:inherit;min-height:56px;cursor:pointer}
+.card.sel{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mute{color:var(--mute);font-size:12px}.price{white-space:nowrap}
+.grp{font-size:12px;color:var(--mute);margin:20px 0 8px;letter-spacing:.15em}
+.chk{width:22px;height:22px;border:1px solid var(--mute);border-radius:6px;flex:none;display:grid;place-items:center;font-size:14px;color:transparent}
+.sel .chk{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar>div{max-width:480px;margin:0 auto}
+.sum{font-size:12px;color:var(--mute);margin-bottom:8px;display:flex;justify-content:space-between}
+.btn{width:100%;min-height:54px;border:0;border-radius:30px;background:var(--acc);color:var(--accfg);font:inherit;font-size:15px;letter-spacing:.15em;cursor:pointer}
+.btn:disabled{opacity:.25}
+.back{background:none;border:0;color:var(--mute);font:inherit;font-size:13px;padding:10px 0;cursor:pointer}
+.dates{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.d{flex:none;width:58px;padding:10px 0;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);font:inherit;cursor:pointer}
+.d b{display:block;font-weight:300;font-size:18px}.d.sel{background:var(--acc);color:var(--accfg)}.d:disabled{opacity:.3}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.s{min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-size:14px;cursor:pointer}
+.s.sel{background:var(--acc);color:var(--accfg)}.s:disabled{opacity:.25;text-decoration:line-through;cursor:default}
+label.f{display:block;font-size:12px;color:var(--mute);margin:14px 0 6px}
+input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:14px;font:inherit;font-size:16px;background:var(--card);color:var(--fg)}
+.kv{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}.kv span:first-child{color:var(--mute);flex:none}.kv span:last-child{text-align:right}
+.line{background:#06c755;color:#fff;border-radius:16px;padding:16px;font-size:13px;margin-top:10px}
+.line .b{display:flex;gap:8px;margin-top:12px}.line .b span{flex:1;background:#fff;color:#06c755;border-radius:20px;text-align:center;padding:8px 0}
+.err{color:#b3402f;font-size:12px;margin-top:4px}
+.btn.o{background:none;color:var(--fg);border:1px solid var(--line)}
+html.lock,html.lock body{overflow:hidden}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(30,28,24,.45);display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:contain}
+.sh{width:100%;max-width:480px;max-height:88%;background:var(--card);border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden}
+.sh.in{animation:up .28s ease-out}@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.shh{display:flex;justify-content:space-between;gap:12px;padding:22px 22px 0}.shh h3{margin:0;font-weight:300;font-size:18px}
+.x{width:40px;height:40px;flex:none;border:1px solid var(--line);border-radius:20px;background:none;color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
+.shb{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 22px 8px}
+.shf{padding:12px 22px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.sl{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--mute)}.tot{display:flex;justify-content:space-between;font-size:15px;margin:8px 0 12px}
+.card:disabled{cursor:default}
+table.wk{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:13px;margin-top:8px}
+.wk th,.wk td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;height:46px;padding:0}
+.wk tr>*:first-child{border-left:1px solid var(--line);width:50px}
+.wk thead th{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;height:54px;font-weight:300;font-size:16px;line-height:1.25;border-top:1px solid var(--line)}
+.wk thead th span{font-size:11px;color:var(--mute)}.wk .sa{color:#4a86b8}.wk .su{color:#c25577}.wk .sa span,.wk .su span{color:inherit}
+.wk .tm{background:var(--bg);font-weight:300;font-size:13px}.wk .tm.q{font-size:11px;color:var(--mute)}
+.wk td{background:var(--card)}.wk td.x{background:transparent;color:var(--mute)}
+.wk td.cl{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line) 6px 7px)}
+.wk td button{width:100%;height:100%;min-height:46px;border:0;background:none;color:var(--fg);font:inherit;font-size:20px;cursor:pointer}
+.wk td.sel{background:var(--acc)}.wk td.sel button{color:var(--accfg)}
+.wkn .back{padding:6px 0}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script></head><body><div id="app"></div>
+<script>
+/* ===== データ層：Supabase（メニューは管理画面で編集した内容を読み込む。予約の確定はサーバー側で金額・時間を再計算） ===== */
+const CONFIG={salon:'limoo',open:'09:00',close:'20:00',step:15,closedWeekdays:[3],weeks:8}; // 営業時間・休業日（サーバー側 create_booking_v2 と同じ値）
+const SB=(window.supabase&&typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL&&!SUPABASE_URL.startsWith('YOUR'))?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let MENUS=[];
+const OPT_FOR={'まつ毛パーマ':'まつ毛パーマ系オプション','フラットラッシュ':'マツエク系オプション','Wフラット':'マツエク系オプション','アイブロウ':'アイブロウ系オプション'}; // メニュー → 表示するオプション群
+const SKIP={'下まつ毛パーマ':['下まつ毛パーマのみ','上下まつ毛パーマ'],'美眉スタイリング':['美眉スタイリング']};   // セットに含まれる施術は非表示
+const NOPAIR=[['当店付け替えオフ','他店付け替えオフ']];                                                      // 併用不可の組み合わせ
+const PERIOD=/^(.+?)\s+(\S*(以内|以降))$/;
+function buildMenus(rows){
+ const opt=rows.filter(r=>r.kind==='option'),g={},order=[];
+ rows.filter(r=>r.kind==='menu').forEach(r=>{if(!g[r.grp]){g[r.grp]=[];order.push(r.grp)}g[r.grp].push(r)});
+ return order.map((n,mi)=>{
+  const it=g[n].map(r=>{const m=r.name.match(PERIOD);return{id:r.id,full:r.name,row:m?m[1]:null,per:m?m[2]:null,price:r.price,min:r.minutes,desc:r.description||''}});
+  const og=opt.filter(o=>o.grp===OPT_FOR[n]).map(o=>({id:o.id,name:o.name,price:o.price,min:o.minutes,desc:o.description||'',skip:SKIP[o.name]||[],no:[]}));
+  NOPAIR.forEach(([a,b])=>{const A=og.find(o=>o.name===a),B=og.find(o=>o.name===b);if(A&&B){A.no.push(B.id);B.no.push(A.id)}});
+  const m={id:'m'+mi,name:n,desc:'¥'+Math.min(...it.map(x=>x.price)).toLocaleString()+'〜',options:og};
+  if(it.every(x=>x.row)){ // 「◯◯ 期間」がそろっている → 行を選んでから期間を選ぶ
+   const per=[...new Set(it.map(x=>x.per))];m.pick='メニュー';m.period=per;
+   m.rows=[...new Set(it.map(x=>x.row))].map(rn=>{const xs=it.filter(x=>x.row===rn);return{name:rn,min:xs[0].min,desc:(xs.find(x=>x.desc)||{}).desc||'',cells:per.map(p=>xs.find(y=>y.per===p)||null)}});
+  }else{ // 期間つきは行ごとにまとめ、期間なしは「その他」
+   const gr=[],gi={};
+   it.forEach(x=>{const k=x.row||'__';if(!gi[k]){gi[k]={label:x.row||'その他',items:[]};gr.push(gi[k])}gi[k].items.push({id:x.id,full:x.full,name:x.row?x.per:x.full,price:x.price,min:x.min,desc:x.desc})});
+   if(gr.length===1&&gr[0].label==='その他')gr[0].label='メニュー';
+   m.groups=gr}
+  return m})}
+const Api={
+ async loadMenu(){const{data,error}=await SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').eq('active',true).order('sort');if(error)throw error;MENUS=buildMenus(data)},
+ async getBusy(d){const{data,error}=await SB.rpc('get_busy_public',{p_date:d});if(error)throw error;return data.map(r=>({start:r.start_min,end:r.end_min}))},
+ async createBooking(){const c=S.cust;
+  const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null});
+  if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
+function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
+ if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
+ if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
+ if(/too_soon|closed_day|out_of_hours|invalid_time|too_far/.test(m))return'選択された日時ではご予約できません。別の時間をお選びください。';
+ return'予約を確定できませんでした。通信状況をご確認のうえ、もう一度お試しください。'}
+async function init(){const A=document.getElementById('app');
+ if(!SB){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">予約システムの準備中です。</p>';return}
+ try{await Api.loadMenu()}catch(e){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">メニューを読み込めませんでした。<br>時間をおいてもう一度お試しください。</p>';return}
+ render()}
+
+/* ===== util ===== */
+const toMin=t=>{const[a,b]=t.split(':');return +a*60+ +b};
+const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const yen=n=>'¥'+n.toLocaleString();
+const WD='日月火水木金土';
+const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const $=(h)=>h;
+
+/* ===== state ===== */
+let S={step:0,menu:null,pick:null,sel:null,opts:new Set(),none:false,date:null,time:null,busy:[],cust:{name:'',tel:'',mail:'',memo:''},done:null,err:{},sheet:false,d:null,optsDone:false,anim:false,wk:0,bm:{}};
+const STEPS=['menu','detail','datetime','info','confirm','done'];
+const base=()=>S.sel;
+const optList=()=>S.menu.options.filter(o=>S.opts.has(o.id));
+const total=()=>({min:base().min+optList().reduce((a,o)=>a+o.min,0),price:base().price+optList().reduce((a,o)=>a+o.price,0)});
+const go=(n)=>{S.step=n;S.cerr='';render();scrollTo(0,0)};
+
+function render(){
+ const A=document.getElementById('app'),k=STEPS[S.step];
+ let h=`<header><div class="logo">limoo</div></header><div class="prog">${STEPS.slice(0,5).map((_,i)=>`<i class="${i<=S.step?'on':''}"></i>`).join('')}</div>`;
+ if(S.step>0&&k!=='done')h+=`<button class="back" onclick="go(S.step-1)">← 戻る</button>`;
+ let bar='';
+ if(k==='menu'){
+  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}<div class="mute">${m.desc}</div></div><span class="mute">›</span></div></button>`).join('');
+ }
+ if(k==='detail'){
+  const m=S.menu;h+=`<h2>${m.name}</h2>`;
+  if(m.rows&&S.pick==null){h+=`<p class="sub">${m.pick}を選択してください</p>`+m.rows.map((r,i)=>`<button class="card" onclick="S.pick=${i};render()"><div class="row"><span>${r.name}${r.desc?`<div class="mute">${esc(r.desc)}</div>`:''}</span><span class="mute">${r.min}分</span></div></button>`).join('');}
+  else if(m.rows){const r=m.rows[S.pick];h+=`<button class="back" onclick="S.pick=null;S.sel=null;S.optsDone=false;render()">‹ ${m.pick}を選び直す</button>`+`<p class="sub">${r.name}（${r.min}分）— 前回来店からの期間</p>`+m.period.map((p,i)=>{const c=r.cells[i];return c?cardSel(p,c.price,c.min,{...c,name:`${r.name} ${p}`}):''}).join('');}
+  else h+=`<p class="sub">メニューを選択してください</p>`+m.groups.map(g=>`<div class="grp">${g.label}</div>`+g.items.map(it=>cardSel(it.name,it.price,it.min,it)).join('')).join('');
+  if(S.sel)h+=`<button class="btn o" style="margin-top:8px" onclick="openSheet()">オプションを選び直す</button>`+(S.optsDone?`<p class="sub" style="margin-top:12px">選択中のオプション：${!S.opts.size?'なし':optList().map(o=>o.name).join('、')}</p>`:'');
+  const t0=S.sel&&S.optsDone?total():null;
+  bar=S.sel?barHtml(S.optsDone?'日時選択へ進む':'オプションを選択する',false,S.optsDone?'goDate()':'openSheet()',S.optsDone?`合計 ${t0.min}分 / ${yen(t0.price)}`:`${S.sel.name} / ${S.sel.min}分`):barHtml('メニューを選択してください',true,'','');
+ }
+ if(k==='datetime'){
+  const t=total(),days=weekDays(),now=new Date(),nm=now.getHours()*60+now.getMinutes(),o=toMin(CONFIG.open),c=toMin(CONFIG.close),f=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  h+=`<h2>日時を選択</h2><p class="sub">所要時間 ${t.min}分で表示しています。○の時間をお選びください。</p>
+  <div class="row wkn"><button class="back" ${S.wk<=0?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk-1)">‹ 前の週へ</button><span class="mute">${f(days[0])}〜${f(days[6])}</span><button class="back" ${S.wk>=CONFIG.weeks-1?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk+1)">次の週へ ›</button></div>
+  <table class="wk"><thead><tr><th></th>${days.map(d=>`<th class="${d.getDay()===0?'su':d.getDay()===6?'sa':''}">${d.getDate()}<br><span>${WD[d.getDay()]}</span></th>`).join('')}</tr></thead><tbody>`;
+  for(let m=o;m<c;m+=CONFIG.step){
+   h+=`<tr><th class="tm ${m%60?'q':''}">${fmt(m)}</th>`+days.map(d=>{const s=dstr(d);
+    if(CONFIG.closedWeekdays.includes(d.getDay()))return `<td class="cl"></td>`;
+    const ok=m+t.min<=c&&!(S.bm[s]||[]).some(b=>m<b.end&&m+t.min>b.start)&&!(s===dstr(now)&&m<nm+30);
+    return ok?`<td class="${S.date===s&&S.time===m?'sel':''}"><button onclick="pickSlot('${s}',${m})" aria-label="${s} ${fmt(m)}">○</button></td>`:`<td class="x">×</td>`}).join('')+`</tr>`}
+  h+=`</tbody></table><p class="mute" style="margin-top:12px">× は予約済み、または施術が最後まで入らない時間です。斜線は休業日です。</p>`;
+  bar=barHtml('次へ：お客様情報',S.time==null,'go(3)',S.time!=null?`${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}`:'日時を選択してください');
+ }
+ if(k==='info'){
+  const c=S.cust,e=S.err;h+=`<h2>お客様情報</h2><p class="sub">ご予約に必要な情報をご入力ください</p>
+  <label class="f">お名前（必須）</label><input id="name" value="${esc(c.name)}" placeholder="山田 花子" autocomplete="name">${e.name?`<div class="err">${e.name}</div>`:''}
+  <label class="f">電話番号（必須）</label><input id="tel" type="tel" inputmode="tel" value="${esc(c.tel)}" placeholder="090-0000-0000" autocomplete="tel">${e.tel?`<div class="err">${e.tel}</div>`:''}
+  <label class="f">メールアドレス（任意）</label><input id="mail" type="email" value="${esc(c.mail)}" placeholder="example@mail.com" autocomplete="email">
+  <label class="f">備考（任意）</label><div class="mute" style="line-height:1.8;margin:-2px 0 8px">◎お子様連れの方は、事前にお知らせください。お子様のご年齢もご記入をお願いします。<br>◎ご質問・ご要望がありましたら、ご自由にご記入ください。</div><textarea id="memo" rows="5" placeholder="例）お子様連れ（3歳）です／ご質問など">${esc(c.memo)}</textarea>`;
+  bar=barHtml('予約内容を確認',false,'toConfirm()','');
+ }
+ if(k==='confirm'){
+  const t=total(),c=S.cust,ol=optList();h+=`<h2>予約内容確認</h2><p class="sub">内容をご確認のうえ、確定してください</p>
+  <div class="kv"><span>メニュー</span><span>${S.menu.name}<br>${S.sel.name}</span></div>
+  <div class="kv"><span>オプション</span><span>${ol.length?ol.map(o=>o.name).join('<br>'):'なし'}</span></div>
+  <div class="kv"><span>日時</span><span>${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}</span></div>
+  <div class="kv"><span>施術時間</span><span>${t.min}分</span></div>
+  <div class="kv"><span>料金</span><span>${yen(t.price)}${S.sel.from?' 〜':''}</span></div>
+  <div class="kv"><span>お客様名</span><span>${esc(c.name)} 様</span></div>${S.cerr?`<div class="err" style="margin-top:14px">${S.cerr}</div>`:''}<p class="mute" style="margin-top:14px;line-height:1.8">◎ご予約の変更は、ご予約日の前々日（23:59）まで、お客様ご自身で行えます。<br>◎キャンセル、および期限後のご変更は、お電話またはLINEでご連絡ください。</p>`;
+  bar=barHtml('予約を確定する',false,'confirmBook()','');
+ }
+ if(k==='done'){
+  const t=total();h+=`<div style="text-align:center;padding:30px 0 6px"><div style="font-size:34px;font-weight:200">✓</div><h2>ご予約ありがとうございます</h2><p class="sub">予約番号 ${S.done.id}</p></div>
+  <div class="kv"><span>日時</span><span>${S.date.replace(/-/g,'/')} ${fmt(S.time)}</span></div><div class="kv"><span>メニュー</span><span>${S.sel.name}</span></div><div class="kv"><span>料金</span><span>${yen(t.price)}</span></div><div class="kv"><span>変更期限</span><span>${chg()?(d=>(d.getMonth()+1)+'/'+d.getDate()+' 23:59まで')(chgDl()):'期限後のため、お電話・LINEでご連絡ください'}</span></div>
+  <div class="grp">LINE通知プレビュー（デモ）</div><div class="line">【limoo】ご予約ありがとうございます<br>${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜<br>${S.sel.name} / ${yen(t.price)}${chg()?'<div class="b"><span>予約を変更する</span></div>':''}<div style="margin-top:10px;font-size:11px;opacity:.9">※ご変更は前々日までです。キャンセルや期限後のご変更は、お電話またはLINEでご連絡ください。</div></div>
+  <div class="line" style="background:#4a4a4a">【前日リマインド】明日はご予約日です<div style="margin-top:10px;font-size:11px;opacity:.9">変更・キャンセルは、お電話またはLINEでご連絡ください。</div></div>`;
+  bar=barHtml('最初に戻る',false,'reset()','');
+ }
+ const sb0=document.querySelector('.shb'),st0=sb0?sb0.scrollTop:0,sh=S.sheet&&k==='detail';
+ A.innerHTML=h+(bar?`<div class="bar"><div>${bar}</div></div>`:'')+(sh?sheetHtml():'');
+ document.documentElement.classList.toggle('lock',!!sh);
+ const sb1=document.querySelector('.shb');if(sb1)sb1.scrollTop=st0;S.anim=false;
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function barHtml(label,dis,fn,sum){return (sum?`<div class="sum"><span>${sum}</span></div>`:'')+`<button class="btn" ${dis?'disabled':''} onclick="${fn}">${label}</button>`}
+function cardSel(label,price,min,item){const on=S.sel&&S.sel.id===item.id;S._items=S._items||{};S._items[item.id]=item;
+ return `<button class="card ${on?'sel':''}" onclick="selItem('${item.id}')"><div class="row"><div style="flex:1">${label}<div class="mute">${min}分</div>${item.desc?`<div class="mute" style="margin-top:2px">${esc(item.desc)}</div>`:''}</div><span class="price">${yen(price)}</span></div></button>`}
+function pickMenu(id){S.menu=MENUS.find(m=>m.id===id);S.pick=null;S.sel=null;S.opts=new Set();S.none=false;S._items={};S.time=null;S.optsDone=false;S.sheet=false;go(1)}
+/* オプション ボトムシート（選択はdraftで保持し、「日時選択へ進む」で確定） */
+const hid=o=>(o.skip||[]).some(k=>S.sel.name.includes(k));          // セットに含まれる施術は非表示
+const visOpts=()=>S.menu.options.filter(o=>!hid(o));
+const blocked=o=>!S.d.o.has(o.id)&&[...S.d.o].some(i=>{const s=S.menu.options.find(x=>x.id===i);return (s.no||[]).includes(o.id)||(o.no||[]).includes(i)}); // 併用不可
+function dTot(){const L=S.menu.options.filter(o=>S.d.o.has(o.id));return {L,min:S.sel.min+L.reduce((a,o)=>a+o.min,0),price:S.sel.price+L.reduce((a,o)=>a+o.price,0)}}
+function sheetHtml(){const d=S.d,t=dTot(),ok=d.n||d.o.size>0,fr=S.sel.from?'〜':'';
+ return `<div class="ov" ontouchmove="if(!event.target.closest('.shb'))event.preventDefault()" onclick="if(event.target===this)closeSheet()"><div class="sh ${S.anim?'in':''}"><div class="shh"><div><h3>追加オプションはいかがですか？</h3><p class="sub" style="margin:6px 0 10px">ご希望のオプションをお選びください。追加がない場合は『オプションなし』を選択してください。</p></div><button class="x" onclick="closeSheet()" aria-label="閉じる">×</button></div><div class="shb">`
+ +visOpts().map(o=>{const b=blocked(o);return `<button class="card ${d.o.has(o.id)?'sel':''}" ${b?'disabled style="opacity:.35"':''} onclick="toggleOpt('${o.id}')"><div class="row"><div style="flex:1">${o.name}<div class="mute">＋${yen(o.price)}${o.min?'　＋'+o.min+'分':''}${b?'　※併用不可':''}</div>${o.desc?`<div class="mute" style="margin-top:2px">${esc(o.desc)}</div>`:''}</div><span class="chk">✓</span></div></button>`}).join('')
+ +`<button class="card ${d.n?'sel':''}" onclick="toggleNone()"><div class="row"><span>オプションなし</span><span class="chk">✓</span></div></button></div><div class="shf"><div class="sl"><span>${S.menu.name}　${S.sel.name}</span><span>${yen(S.sel.price)}${fr} / ${S.sel.min}分</span></div>`
+ +t.L.map(o=>`<div class="sl"><span>＋${o.name}</span><span>${yen(o.price)} / ${o.min}分</span></div>`).join('')
+ +`<div class="tot"><span>合計</span><span>${yen(t.price)}${fr} / ${t.min}分</span></div><button class="btn" ${ok?'':'disabled'} onclick="proceed()">日時選択へ進む</button></div></div></div>`}
+function openSheet(){S.d={o:new Set(S.opts),n:S.none};S.sheet=true;S.anim=true;render()}
+function closeSheet(){S.sheet=false;render()}
+function proceed(){S.opts=new Set(S.d.o);S.none=S.d.n;S.optsDone=true;S.sheet=false;return goDate()}
+function selItem(id){const it=S._items[id];if(!S.sel||S.sel.id!==id){S.sel=it;S.opts=new Set();S.none=false;S.optsDone=false}openSheet()}
+function toggleOpt(id){const o=S.menu.options.find(x=>x.id===id);if(blocked(o))return;S.d.n=false;S.d.o.has(id)?S.d.o.delete(id):S.d.o.add(id);render()}
+function toggleNone(){S.d.n=!S.d.n;if(S.d.n)S.d.o.clear();render()}
+const weekDays=()=>{const b=new Date();return Array.from({length:7},(_,i)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+S.wk*7+i))};
+async function loadWeek(){const m={};await Promise.all(weekDays().map(async d=>{const k=dstr(d);try{m[k]=await Api.getBusy(k)}catch(e){m[k]=[];S.busyErr=true}}));S.bm=m}
+async function setWeek(n){S.wk=n;await loadWeek();render()}
+function pickSlot(d,m){S.date=d;S.time=m;render()}
+async function goDate(){S.date=null;S.time=null;await loadWeek();go(2)}
+function toConfirm(){const g=i=>document.getElementById(i).value.trim();S.cust={name:g('name'),tel:g('tel'),mail:g('mail'),memo:g('memo')};
+ S.err={};if(!S.cust.name)S.err.name='お名前を入力してください';if(!/^[0-9\-+\s]{9,}$/.test(S.cust.tel))S.err.tel='電話番号を正しく入力してください';
+ Object.keys(S.err).length?render():go(4)}
+async function confirmBook(){
+ const b=document.querySelector('.bar .btn');if(b){b.disabled=true;b.textContent='送信中…'}
+ try{S.done=await Api.createBooking()}catch(e){S.cerr=msgOf(e);await loadWeek();render();return}
+ go(5)}
+const chgDl=()=>{const d=new Date(S.date+'T23:59:00');d.setDate(d.getDate()-2);return d};
+const chg=()=>new Date()<=chgDl();
+function reset(){S={step:0,menu:null,pick:null,sel:null,opts:new Set(),none:false,date:null,time:null,busy:[],cust:{name:'',tel:'',mail:'',memo:''},done:null,err:{},sheet:false,d:null,optsDone:false,anim:false,wk:0,bm:{}};render()}
+init();
+</script></body></html>
