@@ -71,7 +71,7 @@ const sv=()=>{};
 const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
 const TODAY=dstr(new Date());
-let D={cat:[],opts:[],bk:[],cu:{},pb:[],set:{hours:{0:{open:'09:00',close:'20:00'},1:{open:'09:00',close:'20:00'},2:{open:'09:00',close:'20:00'},3:{open:'09:00',close:'20:00'},4:{open:'09:00',close:'20:00'},5:{open:'09:00',close:'20:00'},6:{open:'09:00',close:'20:00'}},closedW:[3],closedD:new Set(),closedList:[]}};
+let D={cat:[],opts:[],bk:[],people:[],cu:{},pb:[],set:{hours:{0:{open:'09:00',close:'20:00'},1:{open:'09:00',close:'20:00'},2:{open:'09:00',close:'20:00'},3:{open:'09:00',close:'20:00'},4:{open:'09:00',close:'20:00'},5:{open:'09:00',close:'20:00'},6:{open:'09:00',close:'20:00'}},closedW:[3],closedD:new Set(),closedList:[]}};
 const toM=t=>{const[a,b]=String(t).split(':');return +a*60+ +b};
 function dayH(s){const d=new Date(s+'T00:00:00').getDay(),st=D.set;if(st.closedW.includes(d)||st.closedD.has(s))return null;const h=st.hours[d];return h?{o:toM(h.open),c:toM(h.close)}:null}let STAFF=null;
 D.cu=D.cu||{};
@@ -86,26 +86,27 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m,t,st,cd]=await Promise.all([
+ const[b,m,t,st,cd,c]=await Promise.all([
   SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
   SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),
-  SB.from('closed_dates').select('date,note').order('date')]);
- if(b.error||m.error||t.error||st.error||cd.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+  SB.from('closed_dates').select('date,note').order('date'),
+  SB.from('customers').select('id,name,tel,memo,hidden').order('name').limit(5000)]);
+ if(b.error||m.error||t.error||st.error||cd.error||c.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
  D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{}};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
- D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
+ D.people=c.data;D.cu={};c.data.forEach(r=>{if(r.memo)D.cu[r.id]=r.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
 async function refresh(){await loadAll();render()}
 async function dbSaveBk(id,r,vi){
  const start=new Date(`${r.date}T${fmt(r.start)}:00+09:00`),end=new Date(start.getTime()+r.min*60000),old=id?D.bk.find(b=>b.id===id):null;
- const grp=vi?D.cat[vi.split(':')[0]].n:null;let cid=old?old.cid:null;
- if(!cid||old.name!==r.name||old.tel!==r.tel){ // 同じ名前＋電話のお客様は再利用、なければ新規
+ const grp=vi?D.cat[vi.split(':')[0]].n:null,chosen=old||(S.sheet&&S.sheet.cust);let cid=old?old.cid:chosen?chosen.id:null;
+ if(!cid||chosen.name!==r.name||(chosen.tel||'')!==r.tel){ // 同じ名前＋電話のお客様は再利用、なければ新規
   const q=await SB.from('customers').select('id').eq('name',r.name).eq('tel',r.tel).limit(1);if(q.error)throw q.error;
   if(q.data.length)cid=q.data[0].id;else{const c=await SB.from('customers').insert({name:r.name,tel:r.tel}).select('id').single();if(c.error)throw c.error;cid=c.data.id}}
  const row={customer_id:cid,item:r.item,price:r.price,memo:r.memo,start_at:start.toISOString(),end_at:end.toISOString()};
@@ -166,10 +167,10 @@ function tl(L){
  let now='';if(S.date===TODAY){const d=new Date(),m=d.getHours()*60+d.getMinutes();if(m>=H0&&m<H1)now=`<div class="now" style="top:${y(m)}px"></div>`}
  return `<div class="tl" style="height:${y(H1)}px" onclick="tlTap(event)">${g}${off}${bk}${pb}${now}</div><p class="mute" style="text-align:center">空いている時間をタップすると予約を追加できます</p>`}
 function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.getBoundingClientRect();let m=H0+Math.floor((e.clientY-r.top)/PH*60/15)*15;op({t:'f',start:Math.max(H0,Math.min(H1-15,m))})}
-const ck=b=>b.name.replace(/\s/g,'')+'|'+(b.tel||'').replace(/\D/g,'');
-function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',L:[]}).L.push(b)});
+function custs(){const m={};D.people.forEach(c=>{m[c.id]={k:c.id,name:c.name,tel:c.tel||'',hidden:!!c.hidden,L:[]}});
+ D.bk.forEach(b=>{const k=b.cid;(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',hidden:!!b.hid,L:[]}).L.push(b)});
  return Object.values(m).map(c=>{const ok=c.L.filter(b=>b.status==='ok'),past=ok.filter(b=>b.date<TODAY).sort((a,b)=>b.date.localeCompare(a.date)),next=ok.filter(b=>b.date>=TODAY).sort((a,b)=>(a.date+fmt(a.start)).localeCompare(b.date+fmt(b.start)))[0];
-  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0],hidden:c.L.some(b=>b.hid)}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
+  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0]}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0')||a.name.localeCompare(b.name,'ja'))}
 function cuList(){const q=(S.q||'').replace(/[\s-]/g,'').toLowerCase();
  const A=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q)),hv=c=>c.hidden&&!c.next,nh=A.filter(hv).length,L=A.filter(c=>S.sh?hv(c):!hv(c));
  $('cl').innerHTML=`<div class="row" style="margin-bottom:6px"><span class="mute">${S.sh?'非表示のお客様 ':''}${L.length}名</span>${nh||S.sh?`<button class="chip" onclick="S.sh=!S.sh;cuList()">${S.sh?'一覧に戻る':`非表示（${nh}）`}</button>`:''}</div>`+(L.length?L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>')}
@@ -178,8 +179,8 @@ async function saveGr(){const s=S.sheet,g=D[s.k][s.g],old=g.n,nw=$('gn').value.t
  if(nw!==old){const r=await SB.from('menu_items').update({grp:nw}).eq('kind',kind).eq('grp',old);if(r.error)return er('保存できませんでした')}
  const map={...(D.set.optMap||{})};if(kind==='menu'){delete map[old];const v=$('go').value;if(v)map[nw]=v}else{for(const k in map)if(map[k]===old)map[k]=nw}
  const r2=await SB.from('salon_settings').update({opt_map:map}).eq('id',1);if(r2.error)return er('オプションの設定を保存できませんでした');await refresh();cl()}
-async function hideCu(k,on){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({hidden:on}).in('id',ids);if(r.error){alert('変更できませんでした');return}await refresh();cl()}
-async function saveCu(k){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({memo:$('cm').value}).in('id',ids);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
+async function hideCu(k,on){const r=await SB.from('customers').update({hidden:on}).eq('id',k);if(r.error){alert('変更できませんでした');return}await refresh();cl()}
+async function saveCu(k){const r=await SB.from('customers').update({memo:$('cm').value}).eq('id',k);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
 function mv(n){if(S.view==='m'){const d=new Date(S.date+'T00:00:00');d.setDate(1);d.setMonth(d.getMonth()+n);S.date=dstr(d)}else S.date=addD(S.date,n*(S.view==='w'?7:1));render()}
 const navH=t=>`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${t}</b><button class="ib" onclick="mv(1)">›</button></div>`;
 const sumH=L=>`<div class="row" style="margin-bottom:14px"><span class="mute">${L.length}件 ／ ${yen(L.reduce((a,b)=>a+b.price,0))}</span><button class="chip" onclick="S.date=TODAY;render()">今日</button></div>`;
@@ -258,7 +259,7 @@ function sheet(){
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>電話</span><span>${esc(c.tel||'-')}</span></div><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
   <label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(D.cu[c.k]||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">メモを保存</button><div class="sp"></div>
-  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
+  <button class="btn o" onclick="op({t:'f',cust:{id:'${c.k}',name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
 }
