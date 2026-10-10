@@ -93,7 +93,7 @@ const Api={
  async loadMenu(){const{data,error}=await SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').eq('active',true).order('sort');if(error)throw error;MENUS=buildMenus(data)},
  async getBusy(d){const{data,error}=await SB.rpc('get_busy_public',{p_date:d});if(error)throw error;return data.map(r=>({start:r.start_min,end:r.end_min}))},
  async createBooking(){const c=S.cust;
-  const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null});
+  const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null,p_kana:c.kana||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
 let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
 Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),SB.from('closed_dates').select('date')]);
@@ -160,6 +160,7 @@ function render(){
  if(k==='info'){
   const c=S.cust,e=S.err;h+=`<h2>お客様情報</h2><p class="sub">ご予約に必要な情報をご入力ください</p>
   <label class="f">お名前（必須）</label><input id="name" value="${esc(c.name)}" placeholder="山田 花子" autocomplete="name">${e.name?`<div class="err">${e.name}</div>`:''}
+  <label class="f">フリガナ（必須）</label><input id="kana" value="${esc(c.kana||'')}" placeholder="ヤマダ ハナコ">${e.kana?`<div class="err">${e.kana}</div>`:''}
   <label class="f">電話番号（必須）</label><input id="tel" type="tel" inputmode="tel" value="${esc(c.tel)}" placeholder="090-0000-0000" autocomplete="tel">${e.tel?`<div class="err">${e.tel}</div>`:''}
   <label class="f">メールアドレス（任意）</label><input id="mail" type="email" value="${esc(c.mail)}" placeholder="example@mail.com" autocomplete="email">
   <label class="f">備考（任意）</label><div class="mute" style="line-height:1.8;margin:-2px 0 8px">◎お子様連れの方は、事前にお知らせください。お子様のご年齢もご記入をお願いします。<br>◎ご質問・ご要望がありましたら、ご自由にご記入ください。</div><textarea id="memo" rows="5" placeholder="例）お子様連れ（3歳）です／ご質問など">${esc(c.memo)}</textarea>`;
@@ -214,8 +215,8 @@ async function loadWeek(){const m={};await Promise.all(weekDays().map(async d=>{
 async function setWeek(n){S.wk=n;await loadWeek();render()}
 function pickSlot(d,m){S.date=d;S.time=m;render()}
 async function goDate(){S.date=null;S.time=null;await loadWeek();go(2)}
-function toConfirm(){const g=i=>document.getElementById(i).value.trim();S.cust={name:g('name'),tel:g('tel'),mail:g('mail'),memo:g('memo')};
- S.err={};if(!S.cust.name)S.err.name='お名前を入力してください';if(!/^[0-9\-+\s]{9,}$/.test(S.cust.tel))S.err.tel='電話番号を正しく入力してください';
+function toConfirm(){const g=i=>document.getElementById(i).value.trim();S.cust={name:g('name'),kana:g('kana'),tel:g('tel'),mail:g('mail'),memo:g('memo')};
+ S.err={};if(!S.cust.name)S.err.name='お名前を入力してください';if(!/^[ぁ-ゖァ-ヶー\s　]+$/.test(S.cust.kana))S.err.kana='フリガナをカタカナで入力してください';if(!/^[0-9\-+\s]{9,}$/.test(S.cust.tel))S.err.tel='電話番号を正しく入力してください';
  Object.keys(S.err).length?render():go(4)}
 async function confirmBook(){
  const b=document.querySelector('.bar .btn');if(b){b.disabled=true;b.textContent='送信中…'}
