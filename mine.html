@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>limoo ご予約の確認・変更</title>
+<style>
+:root{--bg:#faf8f3;--fg:#2b2b2b;--mute:#8a867d;--line:#e6e1d6;--card:#fff;--acc:#2b2b2b;--accfg:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}}
+:root[data-theme="dark"]{--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.6}
+#app{max-width:480px;margin:0 auto;padding:20px 20px 130px}
+header{text-align:center;padding:12px 0 8px}.logo{font-size:26px;letter-spacing:.3em;font-weight:200}
+h2{font-weight:300;font-size:19px;margin:22px 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 16px}.mute{color:var(--mute);font-size:12px}
+.kv{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}.kv span:first-child{color:var(--mute);flex:none}.kv span:last-child{text-align:right}
+.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:18px;font-size:13px;line-height:1.8}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px))}.bar>div{max-width:480px;margin:0 auto}
+.sum{font-size:12px;color:var(--mute);margin-bottom:8px}
+.btn{width:100%;min-height:54px;border:0;border-radius:30px;background:var(--acc);color:var(--accfg);font:inherit;font-size:15px;letter-spacing:.15em;cursor:pointer}.btn:disabled{opacity:.25}
+.btn.o{background:none;color:var(--fg);border:1px solid var(--line)}
+.back{background:none;border:0;color:var(--mute);font:inherit;font-size:13px;padding:10px 0;cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+table.wk{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:13px;margin-top:8px}
+.wk th,.wk td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;height:46px;padding:0}
+.wk tr>*:first-child{border-left:1px solid var(--line);width:50px}
+.wk thead th{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;height:54px;font-weight:300;font-size:16px;line-height:1.25;border-top:1px solid var(--line)}
+.wk thead th span{font-size:11px;color:var(--mute)}.wk .sa{color:#4a86b8}.wk .su{color:#c25577}.wk .sa span,.wk .su span{color:inherit}
+.wk .tm{background:var(--bg);font-size:13px}.wk .tm.q{font-size:11px;color:var(--mute)}
+.wk td{background:var(--card)}.wk td.x{background:transparent;color:var(--mute)}.wk td.cur{background:var(--line);font-size:11px;color:var(--mute)}
+.wk td.cl{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line) 6px 7px)}
+.wk td button{width:100%;height:100%;min-height:46px;border:0;background:none;color:var(--fg);font:inherit;font-size:20px;cursor:pointer}
+.wk td.sel{background:var(--acc)}.wk td.sel button{color:var(--accfg)}
+.line{background:#06c755;color:#fff;border-radius:16px;padding:16px;font-size:13px;margin-top:10px}
+.err{color:#b3402f;font-size:12px;margin-top:8px}
+.card{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:14px;padding:16px 18px;margin:0 0 10px;font:inherit;cursor:pointer}
+.ctr{text-align:center;padding:16vh 10px 0}
+</style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script></head><body><div id="app"></div>
+<script>
+const SB=(window.supabase&&typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL&&!SUPABASE_URL.startsWith('YOUR'))?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const LIFF_OK=typeof LIFF_ID!=='undefined'&&LIFF_ID&&!String(LIFF_ID).startsWith('YOUR')&&!!window.liff;
+async function lineInit(force){if(!LIFF_OK)return null;try{await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){if(force||liff.isInClient()){liff.login({redirectUri:location.href});return 'redirect'}return null}return liff.getIDToken()}catch(e){return null}}
+const lineToken=()=>{try{return LIFF_OK&&liff.isLoggedIn()?liff.getIDToken():null}catch(e){return null}};
+
+const WD='日月火水木金土',STEP=15;let WEEKS=8;
+const toMin=t=>{const[a,b]=String(t).split(':');return +a*60+ +b};
+const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const yen=n=>'¥'+Number(n).toLocaleString();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const jd=s=>{const d=new Date(s+'T00:00:00');return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`};
+const J=t=>{const d=new Date(new Date(t).getTime()+9*3600e3);return{date:d.toISOString().slice(0,10),min:d.getUTCHours()*60+d.getUTCMinutes()}};
+let SET={hours:null,closedW:[],closedD:new Set(),o:540,c:1200};
+let S={v:'load',rows:[],b:null,wk:0,bm:{},date:null,time:null,err:''};
+function tooSoon(s,m){const n=new Date(),today=dstr(n),nm=n.getHours()*60+n.getMinutes(),lim=new Date(n.getFullYear(),n.getMonth(),n.getDate()+(SET.maxDays??50));
+ if(s>dstr(lim))return true;if(s===today&&SET.sameday===false)return true;if(s===today&&m<nm+(SET.lead??30))return true;return false}
+const TX=()=>SET.tax?'（税込）':'';
+function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.closedD.has(s))return null;const h=SET.hours&&SET.hours[d.getDay()];return h?{o:toMin(h.open),c:toMin(h.close)}:null}
+async function loadSettings(){const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,liff_id,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),SB.from('closed_dates').select('date')]);
+ if(a.error||b.error)return;const hs=Object.values(a.data.hours);SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}}
+function setWeeks(){WEEKS=Math.max(1,Math.ceil(((SET.maxDays??50)+1)/7))}
+async function loadMine(){const{data,error}=await SB.rpc('my_bookings',{p_id_token:lineToken()});if(error)throw error;
+ S.rows=data.map(r=>{const s=J(r.start_at),e=J(r.end_at);return{item:r.item,opts:r.options||[],date:s.date,start:s.min,min:e.min-s.min+(e.date>s.date?1440:0),price:r.price,token:r.manage_token,can:r.can_change}})}
+function msgOf(e){const m=String(e&&e.message||'');
+ if(e&&e.code==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
+ if(/change_deadline_passed/.test(m))return'変更期限（前々日23:59）を過ぎたため、変更できません。お電話またはLINEでご連絡ください。';
+ if(/too_soon|closed_day|out_of_hours|invalid_time|blocked/.test(m))return'選択された日時には変更できません。別の時間をお選びください。';
+ if(/line_/.test(m))return'LINEの確認ができませんでした。LINEのアプリから開き直してください。';
+ return'うまく処理できませんでした。時間をおいてもう一度お試しください。'}
+async function init(){const A=document.getElementById('app');
+ if(!SB||!LIFF_OK){A.innerHTML='<p class="sub ctr">準備中です。</p>';return}
+ const r=await lineInit(true);if(r==='redirect')return;
+ if(!r){S.v='nol';render();return}
+ try{await loadSettings();setWeeks();await loadMine();S.v=S.rows.length?'list':'none'}catch(e){S.v='err';S.err=msgOf(e)}
+ render()}
+const weekDays=()=>{const b=new Date();return Array.from({length:7},(_,i)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+S.wk*7+i))};
+async function loadWeek(){const m={};await Promise.all(weekDays().map(async d=>{const k=dstr(d);const{data}=await SB.rpc('get_busy_public',{p_date:k});m[k]=(data||[]).map(x=>({start:x.start_min,end:x.end_min}))}));S.bm=m}
+async function setWeek(n){S.wk=n;await loadWeek();render()}
+async function startChange(){S.wk=0;S.date=null;S.time=null;S.err='';await loadWeek();go('pick')}
+function pickSlot(d,m){S.date=d;S.time=m;render()}
+function go(v){S.v=v;if(v!=='confirm')S.err='';render();scrollTo(0,0)}
+function open1(i){S.b=S.rows[i];go('home')}
+async function confirmChange(){const btn=document.querySelector('.bar .btn');if(btn){btn.disabled=true;btn.textContent='送信中…'}
+ const p=new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString();
+ const{error}=await SB.rpc('reschedule_booking',{p_token:S.b.token,p_new_start:p});
+ if(error){S.err=msgOf(error);await loadWeek();render();return}
+ S.b={...S.b,date:S.date,start:S.time};try{await loadMine()}catch(e){}go('done')}
+function render(){
+ const A=document.getElementById('app'),b=S.b;let h=`<header><div class="logo">limoo</div></header>`,bar='';const end=t=>fmt(t+b.min);
+ if(S.v==='nol')h+=`<p class="sub ctr">LINEのアプリから開いてください。</p>`;
+ if(S.v==='err')h+=`<p class="sub ctr">${S.err}</p>`;
+ if(S.v==='none')h+=`<h2>ご予約の確認・変更</h2><div class="note">LINE連携されている、これからのご予約はありません。<br><br>LINEからご予約いただくと、ここで確認・変更できるようになります。お電話などでご予約の方は、ご来店時にスタッフにお声がけいただくと、LINE連携ができます。</div>`+(LIFF_OK?`<div class="sp" style="height:16px"></div><button class="btn" onclick="location.href='https://liff.line.me/${LIFF_ID}/reserve.html'">予約する</button>`:'');
+ if(S.v==='list'){h+=`<h2>ご予約の確認・変更</h2><p class="sub">変更したいご予約をお選びください</p>`+S.rows.map((r,i)=>`<button class="card" onclick="open1(${i})"><div class="row"><div>${jd(r.date)} ${fmt(r.start)}〜${fmt(r.start+r.min)}<div class="mute">${esc(r.item)}</div></div><span class="mute">›</span></div></button>`).join('')+`<div class="note">キャンセルをご希望の場合は、お電話またはLINEのトークでご連絡ください。</div>`}
+ if(S.v==='home'){const dl=new Date(b.date+'T23:59:00');dl.setDate(dl.getDate()-2);
+  h+=`<button class="back" onclick="go('list')">← 戻る</button><h2>ご予約内容</h2>
+  <div class="kv"><span>日時</span><span>${jd(b.date)} ${fmt(b.start)}〜${end(b.start)}</span></div>
+  <div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div>
+  <div class="kv"><span>オプション</span><span>${b.opts.length?b.opts.map(esc).join('<br>'):'なし'}</span></div>
+  <div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div>
+  <div class="kv"><span>変更期限</span><span>${b.can?`${dl.getMonth()+1}/${dl.getDate()} 23:59まで`:'期限を過ぎています'}</span></div>
+  <div class="note">${b.can?'日時のご変更は、ご予約日の前々日（23:59）までお客様ご自身で行えます。':'ご変更の期限（前々日23:59）を過ぎています。お手数ですが、お電話またはLINEのトークでご連絡ください。'}<br>キャンセルをご希望の場合も、お電話またはLINEのトークでご連絡ください。</div>`;
+  if(b.can)bar=`<button class="btn" onclick="startChange()">日時を変更する</button>`}
+ if(S.v==='pick'){const days=weekDays(),now=new Date(),nm=now.getHours()*60+now.getMinutes(),f=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  h+=`<button class="back" onclick="go('home')">← 戻る</button><h2>新しい日時を選択</h2><p class="sub">現在のご予約と同じ内容（${b.min}分）で変更します。○の時間をお選びください。</p>
+  <div class="row"><button class="back" ${S.wk<=0?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk-1)">‹ 前の週へ</button><span class="mute">${f(days[0])}〜${f(days[6])}</span><button class="back" ${S.wk>=WEEKS-1?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk+1)">次の週へ ›</button></div>
+  <table class="wk"><thead><tr><th></th>${days.map(d=>`<th class="${d.getDay()===0?'su':d.getDay()===6?'sa':''}">${d.getDate()}<br><span>${WD[d.getDay()]}</span></th>`).join('')}</tr></thead><tbody>`;
+  for(let m=SET.o;m<SET.c;m+=STEP){
+   h+=`<tr><th class="tm ${m%60?'q':''}">${fmt(m)}</th>`+days.map(d=>{const s=dstr(d),hr=dayHours(d);
+    if(!hr)return `<td class="cl"></td>`;
+    if(s===b.date&&m===b.start)return `<td class="cur">現在</td>`;
+    const busy=(S.bm[s]||[]).filter(x=>!(s===b.date&&x.start===b.start&&x.end===b.start+b.min));
+    const ok=m>=hr.o&&m+b.min<=hr.c&&!busy.some(x=>m<x.end&&m+b.min>x.start)&&!tooSoon(s,m);
+    return ok?`<td class="${S.date===s&&S.time===m?'sel':''}"><button onclick="pickSlot('${s}',${m})" aria-label="${s} ${fmt(m)}">○</button></td>`:`<td class="x">×</td>`}).join('')+`</tr>`}
+  h+=`</tbody></table><p class="mute" style="margin-top:12px">× は予約済み、または施術が最後まで入らない時間です。斜線はお休みの日です。</p>`;
+  bar=`<div class="sum">${S.time!=null?`${jd(S.date)} ${fmt(S.time)}〜${end(S.time)}`:'新しい日時を選択してください'}</div><button class="btn" ${S.time==null?'disabled':''} onclick="go('confirm')">次へ：変更内容の確認</button>`}
+ if(S.v==='confirm'){h+=`<button class="back" onclick="go('pick')">← 戻る</button><h2>変更内容の確認</h2><p class="sub">以下の内容で日時を変更します</p>
+  <div class="kv"><span>変更前</span><span>${jd(b.date)} ${fmt(b.start)}〜${end(b.start)}</span></div>
+  <div class="kv"><span>変更後</span><span><b style="font-weight:400">${jd(S.date)} ${fmt(S.time)}〜${end(S.time)}</b></span></div>
+  <div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div>${S.err?`<div class="err">${S.err}</div>`:''}`;
+  bar=`<button class="btn" onclick="confirmChange()">変更を確定する</button>`}
+ if(S.v==='done'){h+=`<div style="text-align:center;padding:30px 0 6px"><div style="font-size:34px;font-weight:200">✓</div><h2>ご予約を変更しました</h2><p class="sub">変更内容をLINEでもお送りします</p></div>
+  <div class="kv"><span>新しい日時</span><span>${jd(b.date)} ${fmt(b.start)}〜${end(b.start)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div>`;
+  bar=`<button class="btn o" onclick="go(S.rows.length?'list':'none')">ご予約一覧へ</button>`}
+ if(S.v==='load')h+=`<p class="sub ctr">読み込み中…</p>`;
+ A.innerHTML=h+(bar?`<div class="bar"><div>${bar}</div></div>`:'')}
+init();
+</script></body></html>

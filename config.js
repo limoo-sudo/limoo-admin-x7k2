@@ -1,2 +1,3 @@
 const SUPABASE_URL = 'https://wpavmaasjtllgqcvfymn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYXZtYWFzanRsbGdxY3ZmeW1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MDIyMTksImV4cCI6MjEwNzE3ODIxOX0.VYnsBNasbhXeCjVCF1gGZrWBLUpgcUuhCe07Mq9JZFw';
+const LIFF_ID = '2011958926-azaQTylP';

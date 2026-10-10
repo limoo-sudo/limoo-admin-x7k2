@@ -64,6 +64,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .blk.pb{background:repeating-linear-gradient(135deg,var(--line) 0 6px,transparent 6px 12px);color:var(--fg);border:1px solid var(--line)}
 .blk.pb div,.blk.pb b{opacity:1}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script></head><body><div id="app"></div><div id="sheet"></div>
 <script>
@@ -92,14 +93,14 @@ async function loadAll(){
   SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
-  SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),
+  SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),
   SB.from('closed_dates').select('date,note').order('date'),
-  SB.from('customers').select('id,name,tel,email,memo,hidden,kana').limit(10000)]);
+  SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000)]);
  if(b.error||m.error||t.error||st.error||cd.error||cu.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
- D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{}};
+ D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
  D.cust=cu.data;
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
@@ -175,7 +176,7 @@ const toH=s=>String(s||'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCod
 const ROWS='あかさたなはまやらわ';
 function rowOf(s){const c=toH(s).replace(/\s/g,'')[0];if(!c||c<'ぁ'||c>'ゖ')return null;let r='あ';for(const x of ROWS)if(c>=x)r=x;return r}
 function custs(){const m={},byId={};
- D.cust.forEach(c=>{const k=ck({name:c.name,tel:c.tel||''}),g=m[k]||(m[k]={k,name:c.name,tel:c.tel||'',kana:'',memo:'',email:'',ids:[],L:[],hidden:false});g.ids.push(c.id);byId[c.id]=g;if(c.kana&&!g.kana)g.kana=c.kana;if(c.memo&&!g.memo)g.memo=c.memo;if(c.email&&!g.email)g.email=c.email;if(c.hidden)g.hidden=true});
+ D.cust.forEach(c=>{const k=ck({name:c.name,tel:c.tel||''}),g=m[k]||(m[k]={k,name:c.name,tel:c.tel||'',kana:'',memo:'',email:'',ids:[],L:[],hidden:false,linked:false});g.ids.push(c.id);byId[c.id]=g;if(c.kana&&!g.kana)g.kana=c.kana;if(c.memo&&!g.memo)g.memo=c.memo;if(c.email&&!g.email)g.email=c.email;if(c.line_user_id)g.linked=true;if(c.hidden)g.hidden=true});
  D.bk.forEach(b=>{const g=byId[b.cid];if(g)g.L.push(b)});
  return Object.values(m).map(c=>{const ok=c.L.filter(b=>b.status==='ok'),past=ok.filter(b=>b.date<TODAY).sort((a,b)=>b.date.localeCompare(a.date)),next=ok.filter(b=>b.date>=TODAY).sort((a,b)=>(a.date+fmt(a.start)).localeCompare(b.date+fmt(b.start)))[0];
   return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0],row:rowOf(c.kana||c.name),sk:toH(c.kana||c.name).replace(/\s/g,'')}})}
@@ -189,6 +190,18 @@ async function saveGr(){const s=S.sheet,g=D[s.k][s.g],old=g.n,nw=$('gn').value.t
  if(nw!==old){const r=await SB.from('menu_items').update({grp:nw}).eq('kind',kind).eq('grp',old);if(r.error)return er('保存できませんでした')}
  const map={...(D.set.optMap||{})};if(kind==='menu'){delete map[old];const v=$('go').value;if(v)map[nw]=v}else{for(const k in map)if(map[k]===old)map[k]=nw}
  const r2=await SB.from('salon_settings').update({opt_map:map}).eq('id',1);if(r2.error)return er('オプションの設定を保存できませんでした');await refresh();cl()}
+function mgList(){const s=S.sheet,q=toH(($('mq').value||'').replace(/[\s-]/g,'')).toLowerCase();
+ const L=custs().filter(c=>c.k!==s.k&&(!q||(c.name.replace(/\s/g,'')+c.sk+c.tel.replace(/\D/g,'')).toLowerCase().includes(q))).sort((a,b)=>a.sk.localeCompare(b.sk,'ja')).slice(0,30);
+ $('ml').innerHTML=L.map(c=>`<button class="it" onclick="doMerge(decodeURIComponent('${encodeURIComponent(c.k)}'))"><span>${esc(c.name)} 様<div class="mute">${esc(c.tel||'電話番号なし')}${c.linked?'　LINE連携済み':''}${c.last?'　最終来店 '+c.last.date.replace(/-/g,'/'):''}</div></span></button>`).join('')||'<p class="mute">見つかりません</p>'}
+async function doMerge(tk){const s=S.sheet,from=custs().find(x=>x.k===s.k),to=custs().find(x=>x.k===tk);if(!from||!to)return;
+ if(from.linked&&to.linked){alert('どちらもLINE連携済みのため、まとめられません');return}
+ if(!confirm(`${from.name} 様を ${to.name} 様にまとめます。\n予約・来店履歴・LINE連携・メモが ${to.name} 様に移り、${from.name} 様は一覧から消えます。\nよろしいですか？`))return;
+ const keep=to.ids[0],r=await SB.rpc('merge_customers',{p_keep:keep,p_from:[...from.ids,...to.ids.slice(1)]});
+ if(r.error){alert('まとめられませんでした');return}
+ await refresh();const g=custs().find(x=>x.ids.includes(keep));S.sheet=g?{t:'cu',k:g.k}:null;render()}
+async function mkQR(k){if(typeof LIFF_ID==='undefined'||!LIFF_ID||String(LIFF_ID).startsWith('YOUR')){alert('LINEの設定（LIFF）がまだ完了していません');return}
+ const ids=custs().find(x=>x.k===k).ids,r=await SB.from('line_link_tokens').insert({customer_ids:ids}).select('token').single();
+ if(r.error||!r.data){alert('QRを作れませんでした');return}S.qr={k,url:`https://liff.line.me/${LIFF_ID}/link.html?t=${r.data.token||r.data.id}`};render()}
 async function hideCu(k,on){const ids=custs().find(x=>x.k===k).ids,r=await SB.from('customers').update({hidden:on}).in('id',ids);if(r.error){alert('変更できませんでした');return}await refresh();cl()}
 async function saveCu(k){const nm=$('cnm').value.trim();if(!nm){$('fe').textContent='お名前を入力してください';return}const ids=custs().find(x=>x.k===k).ids,r=await SB.from('customers').update({name:nm,kana:$('ckn').value.trim()||null,tel:$('ctl').value.trim()||null,email:$('cem').value.trim()||null,memo:$('cm').value}).in('id',ids);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
 function mv(n){if(S.view==='m'){const d=new Date(S.date+'T00:00:00');d.setDate(1);d.setMonth(d.getMonth()+n);S.date=dstr(d)}else S.date=addD(S.date,n*(S.view==='w'?7:1));render()}
@@ -223,6 +236,13 @@ function setView(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.ho
  h+=[1,2,3,4,5,6,0].map(d=>{const c=F.closedW.includes(d),x=F.hours[d]||{open:'09:00',close:'20:00'};
   return `<div class="hr"><b style="width:22px;font-weight:400">${WD[d]}</b>${c?`<span class="mute" style="flex:1">定休日</span>`:`${tm(x.open,`S.sf.hours[${d}].open=this.value`)}<span>〜</span>${tm(x.close,`S.sf.hours[${d}].close=this.value`)}`}<label class="mute" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" style="width:20px;height:20px" ${c?'checked':''} onchange="tgW(${d},this.checked)">休み</label></div>`}).join('');
  h+=`<div id="se" class="err"></div><div class="sp"></div><button class="btn" onclick="saveSet()">営業時間を保存</button>`;
+ const R=S.rf||(S.rf={maxDays:D.set.maxDays,sd:D.set.sameday?String(D.set.lead):'no',tax:D.set.tax});
+ const sel=(v,list,on)=>`<select onchange="${on}" style="width:auto;padding:8px">${list.map(([k,l])=>`<option value="${k}" ${String(k)===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
+ h+=`<h3 style="font-weight:300;margin:34px 0 4px">予約受付のルール</h3><p class="mute">お客様の予約画面と、日時の変更に反映されます</p>
+ <div class="hr"><span style="flex:1">何日先まで予約を取るか</span>${sel(R.maxDays,[14,21,30,45,50,60,90,120].map(d=>[d,d+'日先まで']),'S.rf.maxDays=+this.value')}</div>
+ <div class="hr"><span style="flex:1">当日予約</span>${sel(R.sd,[['no','受け付けない'],['30','30分前まで'],['60','1時間前まで'],['120','2時間前まで'],['180','3時間前まで']],'S.rf.sd=this.value')}</div>
+ <div class="hr"><span style="flex:1">料金に「税込」と表示する</span><input type="checkbox" style="width:22px;height:22px" ${R.tax?'checked':''} onchange="S.rf.tax=this.checked"></div>
+ <div id="re" class="err"></div><div class="sp"></div><button class="btn" onclick="saveRules()">予約受付のルールを保存</button>`;
  const up=D.set.closedList.filter(r=>r.date>=TODAY);
  h+=`<h3 style="font-weight:300;margin:34px 0 4px">臨時休業日</h3><p class="mute">定休日以外のお休み（旅行・研修など）。この日は予約できなくなります</p>
  <div class="hr"><input id="cdD" type="date" style="flex:1"><input id="cdN" placeholder="メモ（任意）" style="flex:1"><button class="chip" onclick="addCD()">追加</button></div><div id="ce" class="err"></div>`+
@@ -234,12 +254,15 @@ async function saveSet(){const F=S.sf,bad=[0,1,2,3,4,5,6].filter(d=>!F.closedW.i
  if(bad.length){$('se').textContent=bad.map(d=>WD[d]).join('・')+'曜日：終了は開始より後にしてください';return}
  const r=await SB.from('salon_settings').update({hours:F.hours,closed_weekdays:F.closedW,updated_at:new Date().toISOString()}).eq('id',1);
  if(r.error){$('se').textContent='保存できませんでした';return}S.sf=null;await refresh();alert('営業時間を保存しました')}
+async function saveRules(){const R=S.rf,sd=R.sd!=='no';
+ const r=await SB.from('salon_settings').update({max_days:R.maxDays,sameday:sd,lead_minutes:sd?+R.sd:120,tax_label:R.tax}).eq('id',1);
+ if(r.error){$('re').textContent='保存できませんでした';return}S.rf=null;await refresh();alert('予約受付のルールを保存しました')}
 async function addCD(){const d=$('cdD').value,n=$('cdN').value.trim();if(!d){$('ce').textContent='日付を選んでください';return}
  const k=D.bk.filter(x=>x.date===d&&x.status==='ok').length;if(k&&!confirm(`この日は予約が${k}件あります。休業日にしても予約は消えません。追加しますか？`))return;
  const r=await SB.from('closed_dates').insert({date:d,note:n||null});if(r.error){$('ce').textContent=r.error.code==='23505'?'すでに登録されています':'追加できませんでした';return}await refresh()}
 async function delCD(d){if(!confirm('この臨時休業日を削除しますか？'))return;const r=await SB.from('closed_dates').delete().eq('date',d);if(r.error){alert('削除できませんでした');return}await refresh()}
 function op(s){S.sheet=s;render()}
-function cl(){S.sheet=null;render()}
+function cl(){S.sheet=null;S.qr=null;render()}
 function sheet(){
  const s=S.sheet,E=$('sheet');if(!s){E.innerHTML='';return}
  let h='';
@@ -259,6 +282,8 @@ function sheet(){
 
  if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
   h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+ if(s.t==='mg'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
+  h=`<h3>${esc(c.name)} 様をまとめる</h3><p class="mute">同じ方が2人に分かれてしまったとき（LINEで予約した方と、取り込んだお客様など）に使います。まとめる先のお客様を選んでください。予約・来店履歴・LINE連携・メモは、まとめた先に移ります。名前は、まとめた先のものが残ります。</p><input id="mq" type="search" placeholder="名前・フリガナ・電話番号で検索" oninput="mgList()"><div id="ml" style="margin-top:10px"></div><div class="sp"></div><button class="btn o" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})">戻る</button>`}
  if(s.t==='pb'){const b=D.pb.find(x=>x.id===s.id);if(!b){cl();return}
   h=`<h3>${esc(b.title)}</h3><div class="kv"><span>日付</span><span>${b.date.replace(/-/g,'/')}</span></div><div class="kv"><span>時間</span><span>${fmt(b.start)}〜${fmt(b.end)}</span></div><p class="mute">この時間は、お客様の予約画面でも予約できません。</p><div class="sp"></div><button class="btn" onclick="op({t:'pf',id:'${b.id}'})">変更する</button><div class="sp"></div><button class="btn d" onclick="delPb('${b.id}')">この予定を削除</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
  if(s.t==='pf'){const b=s.id?D.pb.find(x=>x.id===s.id):{date:S.date,start:s.start||720,end:(s.start||720)+60,title:''};
@@ -267,11 +292,13 @@ function sheet(){
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
   const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}</span></div>`).join('');
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
-  <label>お名前</label><input id="cnm" value="${esc(c.name)}"><label>フリガナ</label><input id="ckn" value="${esc(c.kana||'')}" placeholder="やまだ はなこ"><label>電話番号</label><input id="ctl" type="tel" inputmode="tel" value="${esc(c.tel||'')}"><label>メールアドレス</label><input id="cem" type="email" value="${esc(c.email||'')}"><label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(c.memo||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
+  <div class="kv"><span>LINE</span><span>${c.linked?'連携済み':'未連携'}</span></div>${c.linked?'':(S.qr&&S.qr.k===c.k?`<div style="text-align:center;margin:12px 0"><div id="qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（10分間有効）</p></div>`:`<button class="chip" style="margin:10px 0" onclick="mkQR(decodeURIComponent('${encodeURIComponent(c.k)}'))">LINE連携用のQRを表示</button>`)}<label>お名前</label><input id="cnm" value="${esc(c.name)}"><label>フリガナ</label><input id="ckn" value="${esc(c.kana||'')}" placeholder="やまだ はなこ"><label>電話番号</label><input id="ctl" type="tel" inputmode="tel" value="${esc(c.tel||'')}"><label>メールアドレス</label><input id="cem" type="email" value="${esc(c.email||'')}"><label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(c.memo||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">保存</button><div class="sp"></div>
-  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
+  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="op({t:'mg',k:decodeURIComponent('${encodeURIComponent(c.k)}')})">別のお客様とまとめる</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
+ if(s.t==='mg')mgList();
+ if(S.qr&&s.t==='cu'&&s.k===S.qr.k&&window.QRCode&&$('qr'))new QRCode($('qr'),{text:S.qr.url,width:200,height:200});
 }
 function pickIt(){const v=$('fi').value;if(!v)return;const[g,i]=v.split(':'),x=D.cat[g].items[i];$('fm').value=x[2];$('fp').value=x[1]}
 async function saveOrder(k){const r=await SB.rpc('reorder_menu',{p_ids:D[k].flatMap(g=>g.all)});if(r.error){alert('並び順を保存できませんでした');await refresh()}}

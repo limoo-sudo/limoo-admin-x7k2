@@ -61,6 +61,7 @@ table.wk{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed
 .wk td.sel{background:var(--acc)}.wk td.sel button{color:var(--accfg)}
 .wkn .back{padding:6px 0}
 </style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script></head><body><div id="app"></div>
 <script>
@@ -93,13 +94,19 @@ const Api={
  async loadMenu(){const{data,error}=await SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').eq('active',true).order('sort');if(error)throw error;MENUS=buildMenus(data)},
  async getBusy(d){const{data,error}=await SB.rpc('get_busy_public',{p_date:d});if(error)throw error;return data.map(r=>({start:r.start_min,end:r.end_min}))},
  async createBooking(){const c=S.cust;
-  const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null,p_kana:c.kana||null});
+  const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:lineToken(),p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null,p_kana:c.kana||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
 let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
-Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),SB.from('closed_dates').select('date')]);
+Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),SB.from('closed_dates').select('date')]);
  if(a.error||b.error)throw a.error||b.error;const hs=Object.values(a.data.hours);
- SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
+ SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
+function tooSoon(s,m){const n=new Date(),today=dstr(n),nm=n.getHours()*60+n.getMinutes(),lim=new Date(n.getFullYear(),n.getMonth(),n.getDate()+(SET.maxDays??50));
+ if(s>dstr(lim))return true;if(s===today&&SET.sameday===false)return true;if(s===today&&m<nm+(SET.lead??30))return true;return false}
+const TX=()=>SET.tax?'（税込）':'';
 function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.closedD.has(s))return null;if(!SET.hours)return{o:SET.o,c:SET.c};const h=SET.hours[d.getDay()];return h?{o:toMin(h.open),c:toMin(h.close)}:null}
+const LIFF_OK=typeof LIFF_ID!=='undefined'&&LIFF_ID&&!String(LIFF_ID).startsWith('YOUR')&&!!window.liff;
+async function lineInit(force){if(!LIFF_OK)return null;try{await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){if(force||liff.isInClient()){liff.login({redirectUri:location.href});return 'redirect'}return null}return liff.getIDToken()}catch(e){return null}}
+const lineToken=()=>{try{return LIFF_OK&&liff.isLoggedIn()?liff.getIDToken():null}catch(e){return null}};
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
  if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
@@ -107,7 +114,10 @@ function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  return'予約を確定できませんでした。通信状況をご確認のうえ、もう一度お試しください。'}
 async function init(){const A=document.getElementById('app');
  if(!SB){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">予約システムの準備中です。</p>';return}
+ const lr=await lineInit(false);if(lr==='redirect')return;
+ if(lr){try{const{data}=await SB.rpc('my_profile',{p_id_token:lr});if(data)S.cust={name:data.name||'',kana:data.kana||'',tel:data.tel||'',mail:data.email||'',memo:''}}catch(e){}}
  try{await Api.loadSettings()}catch(e){}
+ CONFIG.weeks=Math.max(1,Math.ceil(((SET.maxDays??50)+1)/7));
  try{await Api.loadMenu()}catch(e){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">メニューを読み込めませんでした。<br>時間をおいてもう一度お試しください。</p>';return}
  render()}
 
@@ -152,7 +162,7 @@ function render(){
   for(let m=o;m<c;m+=CONFIG.step){
    h+=`<tr><th class="tm ${m%60?'q':''}">${fmt(m)}</th>`+days.map(d=>{const s=dstr(d),hr=dayHours(d);
     if(!hr)return `<td class="cl"></td>`;
-    const ok=m>=hr.o&&m+t.min<=hr.c&&!(S.bm[s]||[]).some(b=>m<b.end&&m+t.min>b.start)&&!(s===dstr(now)&&m<nm+30);
+    const ok=m>=hr.o&&m+t.min<=hr.c&&!(S.bm[s]||[]).some(b=>m<b.end&&m+t.min>b.start)&&!tooSoon(s,m);
     return ok?`<td class="${S.date===s&&S.time===m?'sel':''}"><button onclick="pickSlot('${s}',${m})" aria-label="${s} ${fmt(m)}">○</button></td>`:`<td class="x">×</td>`}).join('')+`</tr>`}
   h+=`</tbody></table><p class="mute" style="margin-top:12px">× は予約済み、または施術が最後まで入らない時間です。斜線はお休みの日です。</p>`;
   bar=barHtml('次へ：お客様情報',S.time==null,'go(3)',S.time!=null?`${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}`:'日時を選択してください');
@@ -172,7 +182,7 @@ function render(){
   <div class="kv"><span>オプション</span><span>${ol.length?ol.map(o=>o.name).join('<br>'):'なし'}</span></div>
   <div class="kv"><span>日時</span><span>${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}</span></div>
   <div class="kv"><span>施術時間</span><span>${t.min}分</span></div>
-  <div class="kv"><span>料金</span><span>${yen(t.price)}${S.sel.from?' 〜':''}</span></div>
+  <div class="kv"><span>料金</span><span>${yen(t.price)}${S.sel.from?' 〜':''}${TX()}</span></div>
   <div class="kv"><span>お客様名</span><span>${esc(c.name)} 様</span></div>${S.cerr?`<div class="err" style="margin-top:14px">${S.cerr}</div>`:''}<p class="mute" style="margin-top:14px;line-height:1.8">◎ご予約の変更は、ご予約日の前々日（23:59）まで、お客様ご自身で行えます。<br>◎キャンセル、および期限後のご変更は、お電話またはLINEでご連絡ください。</p>`;
   bar=barHtml('予約を確定する',false,'confirmBook()','');
  }
@@ -203,7 +213,7 @@ function sheetHtml(){const d=S.d,t=dTot(),ok=d.n||d.o.size>0,fr=S.sel.from?'〜'
  +visOpts().map(o=>{const b=blocked(o);return `<button class="card ${d.o.has(o.id)?'sel':''}" ${b?'disabled style="opacity:.35"':''} onclick="toggleOpt('${o.id}')"><div class="row"><div style="flex:1">${o.name}<div class="mute">＋${yen(o.price)}${o.min?'　＋'+o.min+'分':''}${b?'　※併用不可':''}</div>${o.desc?`<div class="mute" style="margin-top:2px">${esc(o.desc)}</div>`:''}</div><span class="chk">✓</span></div></button>`}).join('')
  +`<button class="card ${d.n?'sel':''}" onclick="toggleNone()"><div class="row"><span>オプションなし</span><span class="chk">✓</span></div></button></div><div class="shf"><div class="sl"><span>${S.menu.name}　${S.sel.name}</span><span>${yen(S.sel.price)}${fr} / ${S.sel.min}分</span></div>`
  +t.L.map(o=>`<div class="sl"><span>＋${o.name}</span><span>${yen(o.price)} / ${o.min}分</span></div>`).join('')
- +`<div class="tot"><span>合計</span><span>${yen(t.price)}${fr} / ${t.min}分</span></div><button class="btn" ${ok?'':'disabled'} onclick="proceed()">日時選択へ進む</button></div></div></div>`}
+ +`<div class="tot"><span>合計</span><span>${yen(t.price)}${fr}${TX()} / ${t.min}分</span></div><button class="btn" ${ok?'':'disabled'} onclick="proceed()">日時選択へ進む</button></div></div></div>`}
 function openSheet(){S.d={o:new Set(S.opts),n:S.none};S.sheet=true;S.anim=true;render()}
 function closeSheet(){S.sheet=false;render()}
 function proceed(){S.opts=new Set(S.d.o);S.none=S.d.n;S.optsDone=true;S.sheet=false;return goDate()}

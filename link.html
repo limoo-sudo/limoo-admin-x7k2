@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>limoo LINE連携</title>
+<style>
+:root{--bg:#faf8f3;--fg:#2b2b2b;--mute:#8a867d;--line:#e6e1d6;--card:#fff;--acc:#2b2b2b;--accfg:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}}
+:root[data-theme="dark"]{--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.6}
+#app{max-width:480px;margin:0 auto;padding:20px 20px 130px}
+header{text-align:center;padding:12px 0 8px}.logo{font-size:26px;letter-spacing:.3em;font-weight:200}
+h2{font-weight:300;font-size:19px;margin:22px 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 16px}.mute{color:var(--mute);font-size:12px}
+.kv{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}.kv span:first-child{color:var(--mute);flex:none}.kv span:last-child{text-align:right}
+.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:18px;font-size:13px;line-height:1.8}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px))}.bar>div{max-width:480px;margin:0 auto}
+.sum{font-size:12px;color:var(--mute);margin-bottom:8px}
+.btn{width:100%;min-height:54px;border:0;border-radius:30px;background:var(--acc);color:var(--accfg);font:inherit;font-size:15px;letter-spacing:.15em;cursor:pointer}.btn:disabled{opacity:.25}
+.btn.o{background:none;color:var(--fg);border:1px solid var(--line)}
+.back{background:none;border:0;color:var(--mute);font:inherit;font-size:13px;padding:10px 0;cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+table.wk{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:13px;margin-top:8px}
+.wk th,.wk td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;height:46px;padding:0}
+.wk tr>*:first-child{border-left:1px solid var(--line);width:50px}
+.wk thead th{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;height:54px;font-weight:300;font-size:16px;line-height:1.25;border-top:1px solid var(--line)}
+.wk thead th span{font-size:11px;color:var(--mute)}.wk .sa{color:#4a86b8}.wk .su{color:#c25577}.wk .sa span,.wk .su span{color:inherit}
+.wk .tm{background:var(--bg);font-size:13px}.wk .tm.q{font-size:11px;color:var(--mute)}
+.wk td{background:var(--card)}.wk td.x{background:transparent;color:var(--mute)}.wk td.cur{background:var(--line);font-size:11px;color:var(--mute)}
+.wk td.cl{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line) 6px 7px)}
+.wk td button{width:100%;height:100%;min-height:46px;border:0;background:none;color:var(--fg);font:inherit;font-size:20px;cursor:pointer}
+.wk td.sel{background:var(--acc)}.wk td.sel button{color:var(--accfg)}
+.line{background:#06c755;color:#fff;border-radius:16px;padding:16px;font-size:13px;margin-top:10px}
+.err{color:#b3402f;font-size:12px;margin-top:8px}
+.card{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:14px;padding:16px 18px;margin:0 0 10px;font:inherit;cursor:pointer}
+.ctr{text-align:center;padding:16vh 10px 0}
+</style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script></head><body><div id="app"></div>
+<script>
+const SB=(window.supabase&&typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL&&!SUPABASE_URL.startsWith('YOUR'))?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const LIFF_OK=typeof LIFF_ID!=='undefined'&&LIFF_ID&&!String(LIFF_ID).startsWith('YOUR')&&!!window.liff;
+async function lineInit(force){if(!LIFF_OK)return null;try{await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){if(force||liff.isInClient()){liff.login({redirectUri:location.href});return 'redirect'}return null}return liff.getIDToken()}catch(e){return null}}
+const lineToken=()=>{try{return LIFF_OK&&liff.isLoggedIn()?liff.getIDToken():null}catch(e){return null}};
+
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function show(h){document.getElementById('app').innerHTML=`<header><div class="logo">limoo</div></header><div class="ctr">${h}</div>`}
+async function init(){
+ if(!SB||!LIFF_OK){show('<p class="sub">準備中です。</p>');return}
+ const r=await lineInit(true);if(r==='redirect')return;
+ if(!r){show('<p class="sub">LINEのアプリから開いてください。</p>');return}
+ const t=new URLSearchParams(location.search).get('t');
+ if(!t){show('<p class="sub">QRコードを読み取り直してください。</p>');return}
+ show('<p class="sub">連携しています…</p>');
+ const{data,error}=await SB.rpc('link_line',{p_token:t,p_id_token:r});
+ if(error){show(/link_expired/.test(error.message||'')?'<h2>QRコードの有効期限が切れています</h2><p class="sub">お手数ですが、スタッフに新しいQRコードを表示してもらってください。</p>':'<h2>連携できませんでした</h2><p class="sub">時間をおいて、もう一度お試しください。</p>');return}
+ show(`<div style="font-size:34px;font-weight:200">✓</div><h2>LINE連携が完了しました</h2><p class="sub">${data?esc(data)+' 様、':''}ありがとうございます。<br>これからは、ご予約のお知らせや前日のリマインドがLINEに届きます。</p>
+ <div style="max-width:320px;margin:24px auto 0"><button class="btn" onclick="location.href='https://liff.line.me/${LIFF_ID}/mine.html'">ご予約の確認・変更</button><div class="sp" style="height:10px"></div><button class="btn o" onclick="location.href='https://liff.line.me/${LIFF_ID}/reserve.html'">予約する</button></div>`)}
+init();
+</script></body></html>
