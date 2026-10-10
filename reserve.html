@@ -98,7 +98,7 @@ const Api={
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
  if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
- if(/too_soon|closed_day|out_of_hours|invalid_time|too_far/.test(m))return'選択された日時ではご予約できません。別の時間をお選びください。';
+ if(/too_soon|closed_day|out_of_hours|invalid_time|too_far|blocked/.test(m))return'選択された日時ではご予約できません。別の時間をお選びください。';
  return'予約を確定できませんでした。通信状況をご確認のうえ、もう一度お試しください。'}
 async function init(){const A=document.getElementById('app');
  if(!SB){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">予約システムの準備中です。</p>';return}
@@ -127,7 +127,7 @@ function render(){
  if(S.step>0&&k!=='done')h+=`<button class="back" onclick="go(S.step-1)">← 戻る</button>`;
  let bar='';
  if(k==='menu'){
-  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}</div><span class="mute">›</span></div></button>`).join('');
+  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}<div class="mute">${m.desc}</div></div><span class="mute">›</span></div></button>`).join('');
  }
  if(k==='detail'){
   const m=S.menu;h+=`<h2>${m.name}</h2>`;

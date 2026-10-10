@@ -46,6 +46,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .blk div{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now{position:absolute;left:46px;right:0;border-top:2px solid var(--red);z-index:2;pointer-events:none}
 .lg{max-width:340px;margin:14vh auto 0;text-align:center}.lg form{text-align:left}.lg .logo{font-size:30px;margin-bottom:6px}
+.blk.pb{background:repeating-linear-gradient(135deg,var(--line) 0 6px,transparent 6px 12px);color:var(--fg);border:1px solid var(--line)}
+.blk.pb div,.blk.pb b{opacity:1}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script></head><body><div id="app"></div><div id="sheet"></div>
@@ -56,7 +58,7 @@ const sv=()=>{};
 const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
 const TODAY=dstr(new Date());
-let D={cat:[],opts:[],bk:[],cu:{}};let STAFF=null;
+let D={cat:[],opts:[],bk:[],cu:{},pb:[]};let STAFF=null;
 D.cu=D.cu||{};
 let S={tab:'bk',date:TODAY,sheet:null};
 const WD='日月火水木金土';
@@ -69,13 +71,16 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m]=await Promise.all([
+ const[b,m,t]=await Promise.all([
   SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo)').order('start_at').limit(5000),
-  SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort')]);
- if(b.error||m.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+  SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
+  SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at')]);
+ if(b.error||m.error||t.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
+ const J=x=>new Date(new Date(x).getTime()+9*3600e3);
+ D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
- const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[]};gs.push(g)}if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
+ const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
 async function refresh(){await loadAll();render()}
 async function dbSaveBk(id,r,vi){
@@ -125,11 +130,14 @@ function renderApp(){
  }else if(S.tab==='cu'){
   h+=`<h3 style="font-weight:300;margin:18px 0 8px">お客様</h3><input id="q" type="search" placeholder="名前・電話番号で検索" value="${esc(S.q||'')}" oninput="S.q=this.value;cuList()" style="margin-bottom:12px"><div id="cl"></div>`;
  }else{
-  h+=`<h3 style="font-weight:300;margin:18px 0 0">メニュー・価格・施術時間</h3><p class="mute">項目をタップして編集できます</p>`;
-  const sec=(k,list)=>list.map((g,gi)=>`<div class="grp">${g.n}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
+  h+=`<div class="row" style="margin:18px 0 4px"><h3 style="font-weight:300;margin:0">メニュー・価格・施術時間</h3><button class="chip" onclick="S.sort=!S.sort;render()">${S.sort?'完了':'並び替え'}</button></div><p class="mute">${S.sort?'▲▼で順番を入れ替えます（お客様の予約画面にも反映されます）':'項目をタップして編集できます'}</p>`;
+  const ar=(up,dn,u,d)=>`<span style="display:flex;gap:6px;flex:none"><button class="ib" ${u?'disabled style="opacity:.25"':''} onclick="${up}">▲</button><button class="ib" ${d?'disabled style="opacity:.25"':''} onclick="${dn}">▼</button></span>`;
+  const sec=(k,list)=>list.map((g,gi)=>S.sort
+   ?`<div class="grp" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(g.n)}</span>${ar(`mvG('${k}',${gi},-1)`,`mvG('${k}',${gi},1)`,gi===0,gi===list.length-1)}</div>`+g.items.map((it,i)=>`<div class="it" style="align-items:center"><span style="flex:1;min-width:0">${esc(it[0])}<div class="mute">${yen(it[1])} ／ ${it[2]}分</div></span>${ar(`mvI('${k}',${gi},${i},-1)`,`mvI('${k}',${gi},${i},1)`,i===0,i===g.items.length-1)}</div>`).join('')
+   :`<div class="grp">${esc(g.n)}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
   h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
  }
- A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<button class="btn" onclick="op({t:'f'})">＋ 予約を追加</button>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button></div></div></div>`;
+ A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button></div></div></div>`;
  sheet();if(S.tab==='cu')cuList();
 }
 const H0=480,H1=1260,PH=88;
@@ -138,8 +146,9 @@ function tl(L){
  for(let m=H0;m<H1;m+=60)g+=`<div class="hl" style="top:${y(m)}px"><span>${fmt(m)}</span></div><div class="hl h2" style="top:${y(m+30)}px"></div><div class="hl h3" style="top:${y(m+15)}px"></div><div class="hl h3" style="top:${y(m+45)}px"></div>`;
  const off=`<div class="off" style="top:0;height:${y(CFG.open)}px"></div><div class="off" style="top:${y(CFG.close)}px;height:${y(H1)-y(CFG.close)}px"></div>`;
  const bk=L.filter(b=>b.status==='ok').map(b=>`<button class="blk" style="top:${y(b.start)}px;height:${b.min/60*PH-2}px" onclick="op({t:'bk',id:'${b.id}'})"><b style="font-weight:400">${fmt(b.start)}-${fmt(b.start+b.min)}</b>　${esc(b.name)} 様<div>${esc(b.item)}</div></button>`).join('');
+ const pb=D.pb.filter(x=>x.date===S.date).map(x=>`<button class="blk pb" style="top:${y(x.start)}px;height:${(x.end-x.start)/60*PH-2}px" onclick="op({t:'pb',id:'${x.id}'})"><b style="font-weight:400">${fmt(x.start)}-${fmt(x.end)}</b>　${esc(x.title)}</button>`).join('');
  let now='';if(S.date===TODAY){const d=new Date(),m=d.getHours()*60+d.getMinutes();if(m>=H0&&m<H1)now=`<div class="now" style="top:${y(m)}px"></div>`}
- return `<div class="tl" style="height:${y(H1)}px" onclick="tlTap(event)">${g}${off}${bk}${now}</div><p class="mute" style="text-align:center">空いている時間をタップすると予約を追加できます</p>`}
+ return `<div class="tl" style="height:${y(H1)}px" onclick="tlTap(event)">${g}${off}${bk}${pb}${now}</div><p class="mute" style="text-align:center">空いている時間をタップすると予約を追加できます</p>`}
 function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.getBoundingClientRect();let m=H0+Math.floor((e.clientY-r.top)/PH*60/15)*15;op({t:'f',start:Math.max(CFG.open,Math.min(CFG.close-15,m))})}
 const ck=b=>b.name.replace(/\s/g,'')+'|'+(b.tel||'').replace(/\D/g,'');
 function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',L:[]}).L.push(b)});
@@ -169,6 +178,11 @@ function sheet(){
   h=`<h3>${s.i>=0?'項目を編集':'項目を追加'}（${L.n}）</h3><label>名称</label><input id="en" value="${esc(it[0])}"><div class="g2"><div><label>料金（円）</label><input id="ep" type="number" inputmode="numeric" value="${it[1]}"></div><div><label>追加・施術時間（分）</label><input id="em" type="number" inputmode="numeric" value="${it[2]}"></div></div><label>説明文（お客様の予約画面に表示されます）</label><textarea id="ed" rows="3" maxlength="200" placeholder="例）自然なボリュームで、目元をやさしく印象づけます">${esc(it[4]||'')}</textarea><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveI()">保存</button><div class="sp"></div>${s.i>=0?`<button class="btn d" onclick="delI()">この項目を削除</button><div class="sp"></div>`:''}<button class="btn o" onclick="cl()">閉じる</button>`;
  }
 
+ if(s.t==='pb'){const b=D.pb.find(x=>x.id===s.id);if(!b){cl();return}
+  h=`<h3>${esc(b.title)}</h3><div class="kv"><span>日付</span><span>${b.date.replace(/-/g,'/')}</span></div><div class="kv"><span>時間</span><span>${fmt(b.start)}〜${fmt(b.end)}</span></div><p class="mute">この時間は、お客様の予約画面でも予約できません。</p><div class="sp"></div><button class="btn" onclick="op({t:'pf',id:'${b.id}'})">変更する</button><div class="sp"></div><button class="btn d" onclick="delPb('${b.id}')">この予定を削除</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+ if(s.t==='pf'){const b=s.id?D.pb.find(x=>x.id===s.id):{date:S.date,start:s.start||720,end:(s.start||720)+60,title:''};
+  const op2=sel=>{let t='';for(let m=CFG.open;m<=CFG.close;m+=15)t+=`<option value="${m}" ${m===sel?'selected':''}>${fmt(m)}</option>`;return t};
+  h=`<h3>${s.id?'予定を変更':'予定を追加'}</h3><p class="mute">この時間は、お客様の予約画面でも予約できなくなります。</p><label>予定の内容</label><input id="pt" value="${esc(b.title)}" placeholder="例）休憩・私用・研修"><div class="g2"><div><label>日付</label><input id="pd" type="date" value="${b.date}"></div><div></div><div><label>開始</label><select id="ps">${op2(b.start)}</select></div><div><label>終了</label><select id="pe">${op2(b.end)}</select></div></div><div class="sp"></div><button class="chip" onclick="allDay()">終日（営業時間いっぱい）にする</button><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="savePb('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'pb',id:'${s.id}'})`:'cl()'}">戻る</button>`}
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
   const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}</span></div>`).join('');
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>電話</span><span>${esc(c.tel||'-')}</span></div><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
@@ -179,6 +193,17 @@ function sheet(){
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
 }
 function pickIt(){const v=$('fi').value;if(!v)return;const[g,i]=v.split(':'),x=D.cat[g].items[i];$('fm').value=x[2];$('fp').value=x[1]}
+async function saveOrder(k){const r=await SB.rpc('reorder_menu',{p_ids:D[k].flatMap(g=>g.all)});if(r.error){alert('並び順を保存できませんでした');await refresh()}}
+async function mvI(k,gi,i,d){const g=D[k][gi],A=g.all.indexOf(g.items[i][3]),B=g.all.indexOf(g.items[i+d][3]);[g.all[A],g.all[B]]=[g.all[B],g.all[A]];[g.items[i],g.items[i+d]]=[g.items[i+d],g.items[i]];render();await saveOrder(k)}
+async function mvG(k,gi,d){const L=D[k];[L[gi],L[gi+d]]=[L[gi+d],L[gi]];render();await saveOrder(k)}
+function allDay(){$('ps').value=CFG.open;$('pe').value=CFG.close}
+async function savePb(id){const v=k=>$(k).value.trim(),title=v('pt'),date=v('pd'),st=+v('ps'),en=+v('pe'),er=m=>{$('fe').textContent=m};
+ if(!title)return er('予定の内容を入力してください');if(!date)return er('日付を入力してください');if(!(en>st))return er('終了は開始より後にしてください');
+ if(D.bk.some(b=>b.date===date&&b.status==='ok'&&st<b.start+b.min&&en>b.start))return er('この時間には予約が入っています。先に予約を変更またはキャンセルしてください');
+ const row={title,start_at:new Date(`${date}T${fmt(st)}:00+09:00`).toISOString(),end_at:new Date(`${date}T${fmt(en)}:00+09:00`).toISOString()};
+ const r=id?await SB.from('time_blocks').update(row).eq('id',id):await SB.from('time_blocks').insert({...row,staff_id:STAFF});
+ if(r.error)return er('保存できませんでした');await refresh();S.date=date;cl()}
+async function delPb(id){if(!confirm('この予定を削除しますか？'))return;const r=await SB.from('time_blocks').delete().eq('id',id);if(r.error){alert('削除できませんでした');return}await refresh();cl()}
 async function saveF(id){
  const v=k=>$(k).value.trim(),name=v('fn'),vi=v('fi'),date=v('fd'),st=+v('fs'),min=+v('fm'),price=+v('fp'),er=m=>{$('fe').textContent=m};
  if(!name)return er('お名前を入力してください');
@@ -186,6 +211,7 @@ async function saveF(id){
  if(!date||!(min>0))return er('日付と施術時間を確認してください');
  if(st+min>CFG.close)return er('営業時間（'+fmt(CFG.close)+'まで）を超えています');
  if(D.bk.some(b=>b.id!==id&&b.date===date&&b.status==='ok'&&st<b.start+b.min&&st+min>b.start))return er('その時間は他の予約と重なっています');
+ if(D.pb.some(x=>x.date===date&&st<x.end&&st+min>x.start))return er('その時間は予定（休憩など）が入っています');
  const item=vi?(x=>D.cat[x[0]].items[x[1]][0])(vi.split(':')):D.bk.find(b=>b.id===id).item;
  const rec={date,start:st,min,name,tel:v('ft'),item,price,memo:v('fo')};
  try{await dbSaveBk(id,rec,vi)}catch(e){return er(e.code==='23P01'?'その時間は他の予約と重なっています':'保存できませんでした：'+(e.message||e))}
