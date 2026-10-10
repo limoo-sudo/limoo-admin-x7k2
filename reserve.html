@@ -127,7 +127,7 @@ function render(){
  if(S.step>0&&k!=='done')h+=`<button class="back" onclick="go(S.step-1)">← 戻る</button>`;
  let bar='';
  if(k==='menu'){
-  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}<div class="mute">${m.desc}</div></div><span class="mute">›</span></div></button>`).join('');
+  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}</div><span class="mute">›</span></div></button>`).join('');
  }
  if(k==='detail'){
   const m=S.menu;h+=`<h2>${m.name}</h2>`;
