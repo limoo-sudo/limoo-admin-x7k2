@@ -64,6 +64,12 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .note2{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:10px 0}.note2 .hr{border:0;padding:0}
 .idx{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:4px}.idx button{flex:none;width:38px;height:38px;border:1px solid var(--line);border-radius:19px;background:var(--card);color:var(--fg);font:inherit;font-size:14px;cursor:pointer}
 .grp{scroll-margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.cp{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:16px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}.cp.on{background:var(--sel);border-color:var(--sel);color:var(--selfg)}
+.ks{border-top:1px solid var(--line);margin-top:18px;padding-top:2px}.kh{font-size:13px;letter-spacing:.15em;margin-top:12px}
+.lm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.lm select{width:100%;padding:8px}
+.ph{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.pt{position:relative;margin:6px 0}.pt img{width:100%;display:block;aspect-ratio:3/4;object-fit:cover;border-radius:10px;background:var(--line)}.pt button{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:16px;cursor:pointer}
+.seq{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.se{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 4px 4px 10px;font-size:13px}.se b{font-weight:500}.se button{border:0;background:none;color:var(--mute);font-size:16px;width:26px;height:26px;cursor:pointer}.cp.ln{min-width:46px}
+.tip{background:var(--card);border:1px solid var(--sel);border-radius:12px;padding:10px 12px;margin-top:14px;font-size:13px;line-height:1.7}.tip b{display:block;font-weight:400;font-size:11px;color:var(--mute)}
 .blk.pb{background:repeating-linear-gradient(135deg,var(--line) 0 6px,transparent 6px 12px);color:var(--fg);border:1px solid var(--line)}
 .blk.pb div,.blk.pb b{opacity:1}
 </style>
@@ -77,11 +83,11 @@ const sv=()=>{};
 const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
 const TODAY=dstr(new Date());
-let D={cat:[],opts:[],bk:[],cu:{},pb:[],cust:[],set:{hours:{0:{open:'09:00',close:'20:00'},1:{open:'09:00',close:'20:00'},2:{open:'09:00',close:'20:00'},3:{open:'09:00',close:'20:00'},4:{open:'09:00',close:'20:00'},5:{open:'09:00',close:'20:00'},6:{open:'09:00',close:'20:00'}},closedW:[3],closedD:new Set(),closedList:[]}};
+let D={cat:[],opts:[],bk:[],cu:{},pb:[],cust:[],kt:{},set:{hours:{0:{open:'09:00',close:'20:00'},1:{open:'09:00',close:'20:00'},2:{open:'09:00',close:'20:00'},3:{open:'09:00',close:'20:00'},4:{open:'09:00',close:'20:00'},5:{open:'09:00',close:'20:00'},6:{open:'09:00',close:'20:00'}},closedW:[3],closedD:new Set(),closedList:[]}};
 const toM=t=>{const[a,b]=String(t).split(':');return +a*60+ +b};
 function dayH(s){const d=new Date(s+'T00:00:00').getDay(),st=D.set;if(st.closedW.includes(d)||st.closedD.has(s))return null;const h=st.hours[d];return h?{o:toM(h.open),c:toM(h.close)}:null}let STAFF=null;
 D.cu=D.cu||{};
-let S={tab:'bk',date:TODAY,sheet:null};
+let S={tab:'bk',date:TODAY,sheet:null,urls:{},ut:{}};
 const WD='日月火水木金土';
 const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
 const yen=n=>'¥'+Number(n).toLocaleString();
@@ -92,20 +98,21 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m,t,st,cd,cu]=await Promise.all([
+ const[b,m,t,st,cd,cu,kt]=await Promise.all([
   SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
   SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),
   SB.from('closed_dates').select('date,note').order('date'),
-  SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000)]);
- if(b.error||m.error||t.error||st.error||cd.error||cu.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+  SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000),
+  SB.from('kartes').select('booking_id,data,talk,next_topic,condition,photos').limit(10000)]);
+ if(b.error||m.error||t.error||st.error||cd.error||cu.error||kt.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
  D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
- D.cust=cu.data;
+ D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
@@ -202,6 +209,47 @@ async function doMerge(tk){const s=S.sheet,from=custs().find(x=>x.k===s.k),to=cu
  const keep=to.ids[0],r=await SB.rpc('merge_customers',{p_keep:keep,p_from:[...from.ids,...to.ids.slice(1)]});
  if(r.error){alert('まとめられませんでした');return}
  await refresh();const g=custs().find(x=>x.ids.includes(keep));S.sheet=g?{t:'cu',k:g.k}:null;render()}
+/* ===== 施術カルテ ===== */
+const KT={ext:'マツエク',lower:'下まつげ',perm:'まつ毛パーマ',brow:'眉',face:'フェイシャル',other:'その他'};
+const CH={design:['ナチュラル','キュート','クール','セクシー','ぱっちり','たれ目風','つり目風'],curl:['J','JC','C','CC','D','DD','L','LC','LD'],thick:['0.05','0.06','0.07','0.10','0.12','0.15','0.20'],len:[6,7,8,9,10,11,12,13,14,15],thin:['なし','少し','しっかり'],lenL:[5,6,7,8,9],rod:['S','M','L','LL','3L'],finish:['ナチュラル','しっかり','ふんわり'],shape:['ストレート','ふんわりアーチ','アーチ','平行'],tech:['ワックス','眉毛パーマ','カラー','スタイリング']};
+function guessKinds(b){const t0=b.item||'',k=[];if(/下まつ(げ|毛)エクステ/.test(t0))k.push('lower');const t=t0.replace(/下まつ(げ|毛)エクステ[^＋]*/g,'');if(/まつ毛パーマ|ラッシュリフト/.test(t))k.push('perm');if(/本|束|つけ放題|フラット|エクステ/.test(t))k.push('ext');if(/眉|ブロウ/.test(t))k.push('brow');if(/フェイシャル/.test(t))k.push('face');return k.length?[...new Set(k)]:['other']}
+function ktInit(b){const r=D.kt[b.id],d=r?JSON.parse(JSON.stringify(r.data||{})):{};
+ return{id:b.id,kinds:d.kinds||guessKinds(b),ext:{curl:[],thick:[],len:{},seq:[],...(d.ext||{})},lower:{thick:[],seq:[],...(d.lower||{})},perm:{...(d.perm||{})},brow:{tech:[],...(d.brow||{})},face:{...(d.face||{})},other:{...(d.other||{})},talk:r?r.talk:'',next:r?r.next_topic:'',cond:r?r.condition:'',photos:r?[...(r.photos||[])]:[]}}
+function prevKt(b){const k=ck(b);return D.bk.filter(x=>x.id!==b.id&&ck(x)===k&&x.status==='ok'&&(x.date<b.date||(x.date===b.date&&x.start<b.start))&&D.kt[x.id]).sort((a,c)=>(c.date+fmt(c.start)).localeCompare(a.date+fmt(a.start))).map(x=>({b:x,k:D.kt[x.id]}))[0]}
+function ktSum(r){const d=r.data||{},o=[],e=d.ext||{},p=d.perm||{},w=d.brow||{};
+ if((d.kinds||[]).includes('ext')&&(e.seq||[]).length){const g=[];e.seq.forEach(x=>{const k=[x.c,x.t].filter(Boolean).join(' '),z=g[g.length-1];if(z&&z.k===k)z.l.push(x.l);else g.push({k,l:[x.l]})});o.push([(e.thick||[]).join('/'),g.map(x=>(x.k?x.k+' ':'')+x.l.join('-')+'mm').join(' / ')].filter(Boolean).join('　'))}
+ else if((d.kinds||[]).includes('ext')){const l=e.len||{};o.push([(e.curl||[]).join('/'),(e.thick||[]).join('/'),(l.in||l.mid||l.out)?[l.in||'-',l.mid||'-',l.out||'-'].join('-')+'mm':''].filter(Boolean).join(' '))}
+ if((d.kinds||[]).includes('perm')&&(p.rod||p.t1||p.t2||p.mood))o.push([p.rod,(p.t1||p.t2)?`${p.t1||'-'}/${p.t2||'-'}分`:'',p.mood].filter(Boolean).join(' '));if((d.kinds||[]).includes('brow')&&(w.form||w.thin||w.shape))o.push(['眉',w.thin?'間引き'+w.thin:'',w.shape||'',(w.form||'').replace(/\s+/g,' ').slice(0,14)].filter(Boolean).join(' '));
+ const L=d.lower||{},F=d.face||{};if((d.kinds||[]).includes('lower')&&(L.seq||[]).length)o.push('下 '+seqSum(L));if((d.kinds||[]).includes('face')&&F.memo)o.push('フェイシャル '+F.memo.replace(/\s+/g,' ').slice(0,12));const X=d.other||{};if((d.kinds||[]).includes('other')&&X.memo)o.push(X.memo.replace(/\s+/g,' ').slice(0,14));
+ const t=o.filter(Boolean).join(' / ');return t||'記録あり'}
+function ktBox(b){const kt=D.kt[b.id],pv=prevKt(b);let x='';
+ if(pv&&(pv.k.next_topic||pv.k.talk))x+=`<div class="tip"><b>前回の話題</b>${esc(pv.k.next_topic||pv.k.talk)}</div>`;
+ return x+`<button class="btn o" style="margin-top:12px" onclick="op({t:'kt',id:'${b.id}'})">${kt?'カルテを見る・編集':'カルテを書く'}</button>${kt?`<p class="mute" style="text-align:center;margin:6px 0 0">${esc(ktSum(kt))}</p>`:''}`}
+const getP=p=>p.split('.').reduce((o,k)=>o?o[k]:undefined,S.kf);
+function setP(p,v){const ks=p.split('.'),l=ks.pop();let o=S.kf;ks.forEach(k=>{o[k]=o[k]||{};o=o[k]});o[l]=v}
+function ktTog(p,v,m){if(m){const a=getP(p)||[];setP(p,a.includes(v)?a.filter(x=>x!==v):[...a,v])}else setP(p,getP(p)===v?'':v);render()}
+function ktSeq(key){const q=S.kf[key].seq||[];if(!q.length)return `<p class="mute" style="margin:8px 0 0">カールを選んでから、目頭から順に長さを押してください</p>`;
+ return `<div class="mute" style="margin-top:10px">目頭 → 目尻</div><div class="seq">${q.map((x,i)=>`<span class="se">${[x.c,x.t].filter(Boolean).map(esc).join(' ')} <b>${x.l}mm</b><button onclick="ktRm('${key}',${i})" aria-label="削除">×</button></span>`).join('')}</div><button class="chip" style="margin-top:8px" onclick="ktRm('${key}',${q.length-1})">1つ戻す</button>`}
+function ktAdd(key,l){const e=S.kf[key];if(!e.cur){alert('先にカールを選んでください');return}e.seq=[...(e.seq||[]),{c:e.cur,l}];render()}
+function ktRm(key,i){const e=S.kf[key];e.seq=(e.seq||[]).filter((_,j)=>j!==i);render()}
+function seqSum(e){const g=[];(e.seq||[]).forEach(x=>{const k=[x.c,x.t].filter(Boolean).join(' '),z=g[g.length-1];if(z&&z.k===k)z.l.push(x.l);else g.push({k,l:[x.l]})});return [(e.thick||[]).join('/'),g.map(x=>(x.k?x.k+' ':'')+x.l.join('-')+'mm').join(' / ')].filter(Boolean).join('　')}
+function ktKind(k){const a=S.kf.kinds;S.kf.kinds=a.includes(k)?a.filter(x=>x!==k):[...a,k];render()}
+const chips=(p,list,m)=>`<div class="chips">${list.map(v=>{const on=m?(getP(p)||[]).includes(v):getP(p)===v;return `<button class="cp ${on?'on':''}" onclick="ktTog('${p}','${v}',${m?1:0})">${v}</button>`}).join('')}</div>`;
+const inp=(p,ph,num)=>`<input value="${esc(getP(p)||'')}" placeholder="${ph}" ${num?'inputmode="numeric"':''} oninput="setP('${p}',this.value)">`;
+const lenSel=p=>{let o='<option value="">-</option>';for(let x=5;x<=15;x+=0.5)o+=`<option ${String(getP(p))===String(x)?'selected':''}>${x}</option>`;return `<select onchange="setP('${p}',this.value)">${o}</select>`};
+function ktCopy(){const b=D.bk.find(x=>x.id===S.kf.id),pv=prevKt(b);if(!pv)return;const d=JSON.parse(JSON.stringify(pv.k.data||{}));
+ Object.assign(S.kf,{kinds:d.kinds||S.kf.kinds,lower:{thick:[],seq:[],...(d.lower||{})},face:{...(d.face||{})},other:{...(d.other||{})},ext:{curl:[],thick:[],len:{},seq:[],...(d.ext||{})},perm:{...(d.perm||{})},brow:{tech:[],...(d.brow||{})}});render()}
+async function ktSave(q){const f=S.kf;if(!f)return false;
+ const row={booking_id:f.id,data:{kinds:f.kinds,ext:f.ext,lower:f.lower,perm:f.perm,brow:f.brow,face:f.face,other:f.other},talk:f.talk||null,next_topic:f.next||null,condition:f.cond||null,photos:f.photos,updated_at:new Date().toISOString()};
+ const r=await SB.from('kartes').upsert(row);if(r.error){if(q)alert('保存できませんでした');else $('fe').textContent='保存できませんでした';return false}
+ D.kt[f.id]=row;if(!q){S.kf=null;op({t:'bk',id:f.id})}return true}
+function shrink(file){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const m=1280,sc=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);c.toBlob(b=>b?res(b):rej(new Error('jpeg')),'image/jpeg',0.82)};img.onerror=rej;img.src=URL.createObjectURL(file)})}
+async function ktUrls(){const need=(S.kf?S.kf.photos:[]).map(p=>p.path).filter(p=>!S.urls[p]&&!S.ut[p]);if(!need.length)return;need.forEach(p=>S.ut[p]=1);
+ const{data}=await SB.storage.from('karte').createSignedUrls(need,3600);(data||[]).forEach(x=>{if(x.signedUrl)S.urls[x.path]=x.signedUrl})}
+async function ktUp(el,k){const file=el.files&&el.files[0];el.value='';if(!file||!S.kf)return;
+ try{const blob=await shrink(file),path=`${S.kf.id}/${Date.now()}-${k}.jpg`,r=await SB.storage.from('karte').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;
+  S.kf.photos.push({path,k});await ktUrls();await ktSave(true);render()}catch(e){alert('写真を保存できませんでした')}}
+async function ktDelPh(path){if(!confirm('この写真を削除しますか？'))return;await SB.storage.from('karte').remove([path]);S.kf.photos=S.kf.photos.filter(p=>p.path!==path);await ktSave(true);render()}
 async function mkQR(k){if(typeof LIFF_ID==='undefined'||!LIFF_ID||String(LIFF_ID).startsWith('YOUR')){alert('LINEの設定（LIFF）がまだ完了していません');return}
  const ids=custs().find(x=>x.k===k).ids,r=await SB.from('line_link_tokens').insert({customer_ids:ids}).select('token').single();
  if(r.error||!r.data){alert('QRを作れませんでした');return}S.qr={k,url:`https://liff.line.me/${LIFF_ID}/link.html?t=${r.data.token||r.data.id}`};render()}
@@ -265,12 +313,12 @@ async function addCD(){const d=$('cdD').value,n=$('cdN').value.trim();if(!d){$('
  const r=await SB.from('closed_dates').insert({date:d,note:n||null});if(r.error){$('ce').textContent=r.error.code==='23505'?'すでに登録されています':'追加できませんでした';return}await refresh()}
 async function delCD(d){if(!confirm('この臨時休業日を削除しますか？'))return;const r=await SB.from('closed_dates').delete().eq('date',d);if(r.error){alert('削除できませんでした');return}await refresh()}
 function op(s){S.sheet=s;render()}
-function cl(){S.sheet=null;S.qr=null;render()}
+function cl(){S.sheet=null;S.qr=null;S.kf=null;render()}
 function sheet(){
  const s=S.sheet,E=$('sheet');if(!s){E.innerHTML='';return}
  let h='';
  if(s.t==='bk'){const b=D.bk.find(x=>x.id===s.id);
-  h=`<h3>${esc(b.name)} 様</h3><div class="kv"><span>日時</span><span>${b.date.replace(/-/g,'/')} ${fmt(b.start)}〜${fmt(b.start+b.min)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div><div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div><div class="kv"><span>電話</span><span>${esc(b.tel||'-')}</span></div><div class="kv"><span>備考</span><span>${esc(b.memo||'-')}</span></div><div class="sp"></div>`+
+  h=`<h3>${esc(b.name)} 様</h3><div class="kv"><span>日時</span><span>${b.date.replace(/-/g,'/')} ${fmt(b.start)}〜${fmt(b.start+b.min)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div><div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div><div class="kv"><span>電話</span><span>${esc(b.tel||'-')}</span></div><div class="kv"><span>備考</span><span>${esc(b.memo||'-')}</span></div>${ktBox(b)}<div class="sp"></div>`+
   (b.status==='ok'?`<button class="btn" onclick="op({t:'f',id:'${b.id}'})">変更する</button><div class="sp"></div>${s.c?`<button class="btn d" onclick="cancelB('${b.id}')">本当にキャンセルする</button>`:`<button class="btn d" onclick="S.sheet.c=1;render()">予約をキャンセル</button>`}<div class="sp"></div>`:`<p class="mute">キャンセル済みです</p>`)+`<button class="btn o" onclick="cl()">閉じる</button>`;
  }
  if(s.t==='f'){const b=s.id?D.bk.find(x=>x.id===s.id):{date:S.date,start:s.start||600,min:60,name:(s.cust||{}).name||'',tel:(s.cust||{}).tel||'',item:'',price:0,memo:''};
@@ -285,6 +333,20 @@ function sheet(){
 
  if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
   h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+ if(s.t==='kt'){const b=D.bk.find(x=>x.id===s.id);if(!b){cl();return}
+  if(!S.kf||S.kf.id!==b.id)S.kf=ktInit(b);const f=S.kf,pv=prevKt(b);
+  h=`<h3>カルテ</h3><p class="mute" style="margin:0;line-height:1.7">${esc(b.name)} 様　${b.date.replace(/-/g,'/')} ${fmt(b.start)}<br>${esc(b.item)}</p>`
+  +(pv?`<button class="chip" style="margin-top:10px" onclick="ktCopy()">前回（${pv.b.date.replace(/-/g,'/')}）のカルテをコピー</button>`:'')
+  +`<div class="chips" style="margin-top:12px">${Object.entries(KT).map(([k,l])=>`<button class="cp ${f.kinds.includes(k)?'on':''}" onclick="ktKind('${k}')">${l}</button>`).join('')}</div>`
+  +(f.kinds.includes('ext')?`<div class="ks"><div class="kh">マツエク</div><label>カール</label>${chips('ext.cur',CH.curl)}<label>太さ（使ったものを選ぶ）</label>${chips('ext.thick',CH.thick,1)}<label>長さ（押すと追加されます）</label><div class="chips">${CH.len.map(l=>`<button class="cp ln" onclick="ktAdd('ext',${l})">${l}</button>`).join('')}</div>${ktSeq('ext')}<label>仕上がりの雰囲気（任意）</label>${chips('ext.design',CH.design)}<div class="g2"><div><label>本数・束数</label>${inp('ext.count','120本')}</div><div><label>商材・グルー</label>${inp('ext.prod','')}</div></div></div>`:'')
+  +(f.kinds.includes('perm')?`<div class="ks"><div class="kh">まつ毛パーマ</div><label>ロッド</label>${inp('perm.rod','ロッドの種類・サイズ')}<label>タイム（分）</label><div class="g2"><div><span class="mute">1剤</span>${inp('perm.t1','8',1)}</div><div><span class="mute">2剤</span>${inp('perm.t2','7',1)}</div></div><label>雰囲気</label>${inp('perm.mood','目尻を流す など')}</div>`:'')
+  +(f.kinds.includes('brow')?`<div class="ks"><div class="kh">眉</div><label>形・左右差など</label><textarea rows="3" placeholder="右の眉山を少し高めに など" oninput="setP('brow.form',this.value)">${esc(getP('brow.form')||'')}</textarea><label>間引き</label>${chips('brow.thin',CH.thin)}<label>メイク</label><textarea rows="2" placeholder="パウダーで眉尻を描き足す など" oninput="setP('brow.make',this.value)">${esc(getP('brow.make')||'')}</textarea></div>`:'')
+  +(f.kinds.includes('lower')?`<div class="ks"><div class="kh">下まつげ</div><label>カール</label>${chips('lower.cur',CH.curl)}<label>太さ（使ったものを選ぶ）</label>${chips('lower.thick',CH.thick,1)}<label>長さ（押すと追加されます）</label><div class="chips">${CH.lenL.map(l=>`<button class="cp ln" onclick="ktAdd('lower',${l})">${l}</button>`).join('')}</div>${ktSeq('lower')}<label>本数</label>${inp('lower.count','20本')}</div>`:'')
+  +(f.kinds.includes('face')?`<div class="ks"><div class="kh">フェイシャルワックス</div><label>肌・産毛の状態</label><textarea rows="3" placeholder="乾燥ぎみ、頬の産毛がしっかり など" oninput="setP('face.memo',this.value)">${esc(getP('face.memo')||'')}</textarea></div>`:'')
+  +(f.kinds.includes('other')?`<div class="ks"><div class="kh">その他</div><label>施術の内容・メモ</label><textarea rows="3" oninput="setP('other.memo',this.value)">${esc(getP('other.memo')||'')}</textarea></div>`:'')
+  +`<div class="ks"><div class="kh">写真</div><div class="ph">${['before','after'].map(k=>`<div><div class="mute">${k==='before'?'ビフォー':'アフター'}</div>${f.photos.filter(p=>p.k===k).map(p=>`<div class="pt"><img src="${S.urls[p.path]||''}" alt="" onclick="if(this.src)window.open(this.src)"><button onclick="ktDelPh('${p.path}')" aria-label="削除">×</button></div>`).join('')}<button class="chip" style="margin-top:6px" onclick="document.getElementById('f-${k}').click()">＋ 追加</button><input id="f-${k}" type="file" accept="image/*" style="display:none" onchange="ktUp(this,'${k}')"></div>`).join('')}</div></div>`
+  +`<div class="ks"><div class="kh">メモ</div><label>目元・自まつ毛の状態</label><textarea rows="2" oninput="S.kf.cond=this.value">${esc(f.cond||'')}</textarea><label>話した内容</label><textarea rows="3" oninput="S.kf.talk=this.value">${esc(f.talk||'')}</textarea><label>次回の話題</label><input value="${esc(f.next||'')}" placeholder="旅行の感想を聞く" oninput="S.kf.next=this.value"></div>`
+  +`<div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="ktSave()">カルテを保存</button><div class="sp"></div><button class="btn o" onclick="S.kf=null;op({t:'bk',id:'${b.id}'})">戻る</button>`}
  if(s.t==='mg'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
   h=`<h3>${esc(c.name)} 様をまとめる</h3><p class="mute">同じ方が2人に分かれてしまったとき（LINEで予約した方と、取り込んだお客様など）に使います。まとめる先のお客様を選んでください。予約・来店履歴・LINE連携・メモは、まとめた先に移ります。名前は、まとめた先のものが残ります。</p><input id="mq" type="search" placeholder="名前・フリガナ・電話番号で検索" oninput="mgList()"><div id="ml" style="margin-top:10px"></div><div class="sp"></div><button class="btn o" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})">戻る</button>`}
  if(s.t==='pb'){const b=D.pb.find(x=>x.id===s.id);if(!b){cl();return}
@@ -293,13 +355,16 @@ function sheet(){
   const op2=sel=>{let t='';for(let m=H0;m<=H1;m+=15)t+=`<option value="${m}" ${m===sel?'selected':''}>${fmt(m)}</option>`;return t};
   h=`<h3>${s.id?'予定を変更':'予定を追加'}</h3><p class="mute">この時間は、お客様の予約画面でも予約できなくなります。</p><label>予定の内容</label><input id="pt" value="${esc(b.title)}" placeholder="例）休憩・私用・研修"><div class="g2"><div><label>日付</label><input id="pd" type="date" value="${b.date}"></div><div></div><div><label>開始</label><select id="ps">${op2(b.start)}</select></div><div><label>終了</label><select id="pe">${op2(b.end)}</select></div></div><div class="sp"></div><button class="chip" onclick="allDay()">終日（営業時間いっぱい）にする</button><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="savePb('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'pb',id:'${s.id}'})`:'cl()'}">戻る</button>`}
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
-  const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}</span></div>`).join('');
+  const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}${D.kt[b.id]?'<br><span class="mute">'+esc(ktSum(D.kt[b.id]))+'</span>':''}</span></div>`).join('');
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
   <div class="kv"><span>LINE</span><span>${c.linked?'連携済み':'未連携'}</span></div>${c.linked?'':(S.qr&&S.qr.k===c.k?`<div style="text-align:center;margin:12px 0"><div id="qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（10分間有効）</p></div>`:`<button class="chip" style="margin:10px 0" onclick="mkQR(decodeURIComponent('${encodeURIComponent(c.k)}'))">LINE連携用のQRを表示</button>`)}<label>お名前</label><input id="cnm" value="${esc(c.name)}"><label>フリガナ</label><input id="ckn" value="${esc(c.kana||'')}" placeholder="やまだ はなこ"><label>電話番号</label><input id="ctl" type="tel" inputmode="tel" value="${esc(c.tel||'')}"><label>メールアドレス</label><input id="cem" type="email" value="${esc(c.email||'')}"><label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(c.memo||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">保存</button><div class="sp"></div>
   <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="op({t:'mg',k:decodeURIComponent('${encodeURIComponent(c.k)}')})">別のお客様とまとめる</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
+ const sk=s.t+(s.id||s.k||''),sh0=E.querySelector&&E.querySelector('.sh'),sc0=sh0&&S._sk===sk?sh0.scrollTop:0;S._sk=sk;
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
+ {const sh1=E.querySelector&&E.querySelector('.sh');if(sh1&&sc0)sh1.scrollTop=sc0}
+ if(s.t==='kt'&&S.kf&&S.kf.photos.some(p=>!S.urls[p.path]&&!S.ut[p.path]))ktUrls().then(render);
  if(s.t==='mg')mgList();
  if(S.qr&&s.t==='cu'&&s.k===S.qr.k&&window.QRCode&&$('qr'))new QRCode($('qr'),{text:S.qr.url,width:200,height:200});
 }
