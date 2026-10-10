@@ -45,30 +45,18 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .blk{position:absolute;left:54px;right:4px;border:0;border-radius:10px;background:var(--acc);color:var(--accfg);padding:5px 10px;text-align:left;font:inherit;font-size:12px;line-height:1.35;overflow:hidden;cursor:pointer}
 .blk div{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now{position:absolute;left:46px;right:0;border-top:2px solid var(--red);z-index:2;pointer-events:none}
-</style></head><body><div id="app"></div><div id="sheet"></div>
+.lg{max-width:340px;margin:14vh auto 0;text-align:center}.lg form{text-align:left}.lg .logo{font-size:30px;margin-bottom:6px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script></head><body><div id="app"></div><div id="sheet"></div>
 <script>
-/* ===== データ（Supabaseの menus / options / bookings テーブルに置換予定。ここでは localStorage でデモ保存） ===== */
-const CAT=[
-{n:'まつ毛パーマ',items:[['上 6週間以内',5500,60],['上 6週間以降',6000,60],['下のみ',3500,45],['上下',8500,75],['上＋美眉スタイリング',10500,90]]},
-{n:'フラットラッシュ',items:[['80本 1ヶ月以内',4900,60],['80本 1ヶ月以降',5900,60],['100本 1ヶ月以内',5500,60],['100本 1ヶ月以降',6500,60],['120本 1ヶ月以内',6100,75],['120本 1ヶ月以降',7100,75],['140本 1ヶ月以内',6700,75],['140本 1ヶ月以降',7700,75],['160本 1ヶ月以内',7300,90],['160本 1ヶ月以降',8300,90]]},
-{n:'Wフラット',items:[['60束 1ヶ月以内',6400,60],['60束 1ヶ月以降',7400,60],['80束 1ヶ月以内',7300,75],['80束 1ヶ月以降',8300,75],['100束 1ヶ月以内',8100,90],['100束 1ヶ月以降',9100,90],['つけ放題 1ヶ月以内',9000,90],['つけ放題 1ヶ月以降',10000,90]]},
-{n:'アイブロウ',items:[['レディース 2ヶ月以内',5000,60],['レディース 2ヶ月以降',5500,60],['メンズ 2ヶ月以内',4500,60],['メンズ 2ヶ月以降',5000,60]]},
-{n:'フェイシャルワックス',items:[['フェイシャルワックス',3000,30]]}];
-const OPTS=[
-{n:'マツエク系オプション',items:[['LEDマツエクに変更',1000,10],['&Healthy / アゲエク',3000,0],['当店付け替えオフ',500,10],['他店付け替えオフ',1000,10]]},
-{n:'まつ毛パーマ系オプション',items:[['下まつ毛パーマ',3500,30],['美眉スタイリング',3000,20],['眉毛パーマ',2000,20]]},
-{n:'アイブロウ系オプション',items:[['眉毛パーマ',2000,20]]}];
+/* ===== データ：Supabase（bookings / customers / menu_items）。メモリ上の D に読み込んで描画 ===== */
 const CFG={open:540,close:1200};
-const KEY='limoo_admin_v2';
-const ld=()=>{try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}};
-const sv=()=>{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}};
+const sv=()=>{};
 const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
 const TODAY=dstr(new Date());
-function seed(){const b=[];const P=(o,t,m,n,tel,it,p)=>b.push({id:'b'+b.length,date:addD(TODAY,o),start:t,min:m,name:n,tel,item:it,price:p,memo:'',status:'ok'});
- P(0,600,60,'田中 美咲','090-1111-2222','上 6週間以内',5500);P(0,840,90,'佐藤 あや','080-3333-4444','160本 1ヶ月以内',7300);P(0,1005,60,'鈴木 りな','090-5555-6666','レディース 2ヶ月以内',5000);
- P(1,720,75,'高橋 ゆい','090-7777-8888','120本 1ヶ月以降',7100);P(1,900,90,'伊藤 まい','080-9999-0000','つけ放題 1ヶ月以内',9000);P(2,600,75,'渡辺 さくら','090-1212-3434','80束 1ヶ月以内',7300);P(-7,600,60,'田中 美咲','090-1111-2222','上 6週間以内',5500);P(-35,600,60,'田中 美咲','090-1111-2222','上 6週間以降',6000);P(-21,840,90,'佐藤 あや','080-3333-4444','160本 1ヶ月以内',7300);P(-14,1005,60,'鈴木 りな','090-5555-6666','レディース 2ヶ月以降',5500);P(-10,720,75,'高橋 ゆい','090-7777-8888','120本 1ヶ月以内',6100);P(-30,900,90,'伊藤 まい','080-9999-0000','つけ放題 1ヶ月以降',10000);return b}
-let D=ld()||{cat:CAT,opts:OPTS,bk:seed()};
+let D={cat:[],opts:[],bk:[],cu:{}};let STAFF=null;
 D.cu=D.cu||{};
 let S={tab:'bk',date:TODAY,sheet:null};
 const WD='日月火水木金土';
@@ -78,8 +66,57 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const $=id=>document.getElementById(id);
 const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 
+/* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
+async function loadAll(){
+ if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
+ const[b,m]=await Promise.all([
+  SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo)').order('start_at').limit(5000),
+  SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active').order('sort')]);
+ if(b.error||m.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+ D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
+ D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
+ const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[]};gs.push(g)}if(x.active)g.items.push([x.name,x.price,x.minutes,x.id])});return gs};
+ D.cat=mk('menu');D.opts=mk('option');return true}
+async function refresh(){await loadAll();render()}
+async function dbSaveBk(id,r,vi){
+ const start=new Date(`${r.date}T${fmt(r.start)}:00+09:00`),end=new Date(start.getTime()+r.min*60000),old=id?D.bk.find(b=>b.id===id):null;
+ const grp=vi?D.cat[vi.split(':')[0]].n:null;let cid=old?old.cid:null;
+ if(!cid||old.name!==r.name||old.tel!==r.tel){ // 同じ名前＋電話のお客様は再利用、なければ新規
+  const q=await SB.from('customers').select('id').eq('name',r.name).eq('tel',r.tel).limit(1);if(q.error)throw q.error;
+  if(q.data.length)cid=q.data[0].id;else{const c=await SB.from('customers').insert({name:r.name,tel:r.tel}).select('id').single();if(c.error)throw c.error;cid=c.data.id}}
+ const row={customer_id:cid,item:r.item,price:r.price,memo:r.memo,start_at:start.toISOString(),end_at:end.toISOString()};
+ if(grp)row.menu=grp;
+ const res=id?await SB.from('bookings').update(row).eq('id',id):await SB.from('bookings').insert({...row,staff_id:STAFF,menu:grp||r.item,options:[]});
+ if(res.error)throw res.error}
+/* ===== ログイン（Supabase Auth：メール＋パスワード。管理者テーブルに登録された人だけ入れる） ===== */
+const SB=(window.supabase&&typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL&&!SUPABASE_URL.startsWith('YOUR'))?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let AUTH={user:null,admin:false,ready:false,err:'',email:''};
+async function isAdmin(){try{const{data,error}=await SB.rpc('is_admin');return !error&&data===true}catch(e){return false}}
+async function boot(){
+ if(!SB){render();return}
+ const{data}=await SB.auth.getSession();AUTH.user=data.session?data.session.user:null;AUTH.admin=AUTH.user?await isAdmin():false;
+ if(AUTH.user&&!AUTH.admin){await SB.auth.signOut();AUTH.user=null;AUTH.err='このアカウントには管理画面の権限がありません'}
+ AUTH.ready=true;if(AUTH.user)await loadAll();render();
+ if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(!document.hidden&&AUTH.user&&AUTH.admin&&!S.sheet)refresh()});
+ SB.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'&&AUTH.user){AUTH.user=null;AUTH.admin=false;render()}});
+}
+async function login(e){e.preventDefault();const em=document.getElementById('le').value.trim(),pw=document.getElementById('lp').value;AUTH.email=em;AUTH.err='';
+ const b=document.getElementById('lb');b.disabled=true;b.textContent='確認中…';
+ const{data,error}=await SB.auth.signInWithPassword({email:em,password:pw});
+ if(error){AUTH.err='メールアドレスまたはパスワードが正しくありません';render();return}
+ AUTH.user=data.user;AUTH.admin=await isAdmin();
+ if(!AUTH.admin){await SB.auth.signOut();AUTH.user=null;AUTH.err='このアカウントには管理画面の権限がありません'}
+ if(AUTH.admin)await loadAll();render()}
+async function logout(){await SB.auth.signOut();AUTH.user=null;AUTH.admin=false;AUTH.err='';S.sheet=null;render()}
+const loginHtml=()=>`<div class="lg"><div class="logo">limoo</div><p class="mute" style="margin:0 0 28px">管理画面</p><form onsubmit="login(event)"><label>メールアドレス</label><input id="le" type="email" inputmode="email" autocomplete="username" autocapitalize="off" value="${esc(AUTH.email||'')}" required><label>パスワード</label><input id="lp" type="password" autocomplete="current-password" required>${AUTH.err?`<div class="err">${AUTH.err}</div>`:''}<div class="sp"></div><button class="btn" id="lb" type="submit">ログイン</button></form></div>`;
 function render(){
- const A=$('app');let h=`<div class="top"><span class="logo">limoo</span><span class="mute">管理画面（デモ）</span></div>`;
+ const A=$('app'),E=$('sheet');
+ if(!SB){E.innerHTML='';A.innerHTML=`<div class="lg"><div class="logo">limoo</div><p class="mute">管理画面</p><p style="font-size:13px;line-height:1.8;margin-top:24px">ログインの設定がまだ完了していません。<br>config.js に Supabase のURLとキーを入れてください。</p></div>`;return}
+ if(!AUTH.ready){E.innerHTML='';A.innerHTML=`<p class="mute" style="text-align:center;padding:30vh 0 0">読み込み中…</p>`;return}
+ if(!AUTH.user||!AUTH.admin){E.innerHTML='';A.innerHTML=loginHtml();return}
+ renderApp()}
+function renderApp(){
+ const A=$('app');let h=`<div class="top"><span class="logo">limoo</span><button class="chip" onclick="logout()">ログアウト</button></div>`;
  if(S.tab==='bk'){
   const d=new Date(S.date+'T00:00:00'),L=dayB(),ok=L.filter(b=>b.status==='ok');
   h+=`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</b><button class="ib" onclick="mv(1)">›</button></div>
@@ -111,7 +148,7 @@ function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b
 function cuList(){const q=(S.q||'').replace(/[\s-]/g,'').toLowerCase();
  const L=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q));
  $('cl').innerHTML=L.length?`<p class="mute">${L.length}名</p>`+L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>'}
-function saveCu(k){D.cu[k]=$('cm').value;sv();cl()}
+async function saveCu(k){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({memo:$('cm').value}).in('id',ids);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
 function mv(n){S.date=addD(S.date,n);render()}
 function op(s){S.sheet=s;render()}
 function cl(){S.sheet=null;render()}
@@ -142,7 +179,7 @@ function sheet(){
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
 }
 function pickIt(){const v=$('fi').value;if(!v)return;const[g,i]=v.split(':'),x=D.cat[g].items[i];$('fm').value=x[2];$('fp').value=x[1]}
-function saveF(id){
+async function saveF(id){
  const v=k=>$(k).value.trim(),name=v('fn'),vi=v('fi'),date=v('fd'),st=+v('fs'),min=+v('fm'),price=+v('fp'),er=m=>{$('fe').textContent=m};
  if(!name)return er('お名前を入力してください');
  if(!vi&&!id)return er('メニューを選択してください');
@@ -151,14 +188,15 @@ function saveF(id){
  if(D.bk.some(b=>b.id!==id&&b.date===date&&b.status==='ok'&&st<b.start+b.min&&st+min>b.start))return er('その時間は他の予約と重なっています');
  const item=vi?(x=>D.cat[x[0]].items[x[1]][0])(vi.split(':')):D.bk.find(b=>b.id===id).item;
  const rec={date,start:st,min,name,tel:v('ft'),item,price,memo:v('fo')};
- if(id)Object.assign(D.bk.find(b=>b.id===id),rec);else D.bk.push({id:'b'+Date.now(),status:'ok',...rec});
- sv();S.date=date;cl();
+ try{await dbSaveBk(id,rec,vi)}catch(e){return er(e.code==='23P01'?'その時間は他の予約と重なっています':'保存できませんでした：'+(e.message||e))}
+ await refresh();S.date=date;cl();
 }
-function cancelB(id){D.bk.find(b=>b.id===id).status='x';sv();cl()}
-function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m=+$('em').value;
+async function cancelB(id){const r=await SB.from('bookings').update({status:'canceled'}).eq('id',id);if(r.error){alert('キャンセルできませんでした');return}await refresh();cl()}
+async function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m=+$('em').value;
  if(!n||isNaN(p)||isNaN(m)||$('ep').value===''||$('em').value==='')return $('fe').textContent='名称・料金・時間を入力してください';
- const L=D[s.k][s.g].items;s.i>=0?L[s.i]=[n,p,m]:L.push([n,p,m]);sv();cl()}
-function delI(){const s=S.sheet;D[s.k][s.g].items.splice(s.i,1);sv();cl()}
-render();
+ const g=D[s.k][s.g],r=s.i>=0?await SB.from('menu_items').update({name:n,price:p,minutes:m}).eq('id',g.items[s.i][3]):await SB.from('menu_items').insert({kind:s.k==='cat'?'menu':'option',grp:g.n,name:n,price:p,minutes:m,sort:Math.floor(Date.now()/1000)});
+ if(r.error)return $('fe').textContent='保存できませんでした';await refresh();cl()}
+async function delI(){const s=S.sheet,r=await SB.from('menu_items').update({active:false}).eq('id',D[s.k][s.g].items[s.i][3]);if(r.error){alert('削除できませんでした');return}await refresh();cl()}
+boot();
 if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js')}catch(e){}});
 </script></body></html>
