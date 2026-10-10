@@ -87,16 +87,16 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
  const[b,m,t,st,cd]=await Promise.all([
-  SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo)').order('start_at').limit(5000),
+  SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
-  SB.from('salon_settings').select('hours,closed_weekdays').eq('id',1).single(),
+  SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),
   SB.from('closed_dates').select('date,note').order('date')]);
  if(b.error||m.error||t.error||st.error||cd.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
- D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
+ D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
- D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data};
+ D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{}};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
@@ -150,7 +150,7 @@ function renderApp(){
   const ar=(up,dn,u,d)=>`<span style="display:flex;gap:6px;flex:none"><button class="ib" ${u?'disabled style="opacity:.25"':''} onclick="${up}">▲</button><button class="ib" ${d?'disabled style="opacity:.25"':''} onclick="${dn}">▼</button></span>`;
   const sec=(k,list)=>list.map((g,gi)=>S.sort
    ?`<div class="grp" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(g.n)}</span>${ar(`mvG('${k}',${gi},-1)`,`mvG('${k}',${gi},1)`,gi===0,gi===list.length-1)}</div>`+g.items.map((it,i)=>`<div class="it" style="align-items:center"><span style="flex:1;min-width:0">${esc(it[0])}<div class="mute">${yen(it[1])} ／ ${it[2]}分</div></span>${ar(`mvI('${k}',${gi},${i},-1)`,`mvI('${k}',${gi},${i},1)`,i===0,i===g.items.length-1)}</div>`).join('')
-   :`<div class="grp">${esc(g.n)}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
+   :`<div class="grp" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(g.n)}</span><button class="chip" onclick="op({t:'gr',k:'${k}',g:${gi}})">編集</button></div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
   h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
  }
  A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button><button class="${S.tab==='st'?'on':''}" onclick="S.tab='st';render()">設定</button></div></div></div>`;
@@ -169,10 +169,16 @@ function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.get
 const ck=b=>b.name.replace(/\s/g,'')+'|'+(b.tel||'').replace(/\D/g,'');
 function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',L:[]}).L.push(b)});
  return Object.values(m).map(c=>{const ok=c.L.filter(b=>b.status==='ok'),past=ok.filter(b=>b.date<TODAY).sort((a,b)=>b.date.localeCompare(a.date)),next=ok.filter(b=>b.date>=TODAY).sort((a,b)=>(a.date+fmt(a.start)).localeCompare(b.date+fmt(b.start)))[0];
-  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0]}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
+  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0],hidden:c.L.some(b=>b.hid)}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
 function cuList(){const q=(S.q||'').replace(/[\s-]/g,'').toLowerCase();
- const L=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q));
- $('cl').innerHTML=L.length?`<p class="mute">${L.length}名</p>`+L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>'}
+ const A=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q)),hv=c=>c.hidden&&!c.next,nh=A.filter(hv).length,L=A.filter(c=>S.sh?hv(c):!hv(c));
+ $('cl').innerHTML=`<div class="row" style="margin-bottom:6px"><span class="mute">${S.sh?'非表示のお客様 ':''}${L.length}名</span>${nh||S.sh?`<button class="chip" onclick="S.sh=!S.sh;cuList()">${S.sh?'一覧に戻る':`非表示（${nh}）`}</button>`:''}</div>`+(L.length?L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>')}
+async function saveGr(){const s=S.sheet,g=D[s.k][s.g],old=g.n,nw=$('gn').value.trim(),kind=s.k==='cat'?'menu':'option',er=m=>{$('fe').textContent=m};
+ if(!nw)return er('カテゴリー名を入力してください');if(nw!==old&&D[s.k].some(x=>x.n===nw))return er('同じ名前のカテゴリーがあります');
+ if(nw!==old){const r=await SB.from('menu_items').update({grp:nw}).eq('kind',kind).eq('grp',old);if(r.error)return er('保存できませんでした')}
+ const map={...(D.set.optMap||{})};if(kind==='menu'){delete map[old];const v=$('go').value;if(v)map[nw]=v}else{for(const k in map)if(map[k]===old)map[k]=nw}
+ const r2=await SB.from('salon_settings').update({opt_map:map}).eq('id',1);if(r2.error)return er('オプションの設定を保存できませんでした');await refresh();cl()}
+async function hideCu(k,on){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({hidden:on}).in('id',ids);if(r.error){alert('変更できませんでした');return}await refresh();cl()}
 async function saveCu(k){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({memo:$('cm').value}).in('id',ids);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
 function mv(n){if(S.view==='m'){const d=new Date(S.date+'T00:00:00');d.setDate(1);d.setMonth(d.getMonth()+n);S.date=dstr(d)}else S.date=addD(S.date,n*(S.view==='w'?7:1));render()}
 const navH=t=>`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${t}</b><button class="ib" onclick="mv(1)">›</button></div>`;
@@ -240,6 +246,8 @@ function sheet(){
   h=`<h3>${s.i>=0?'項目を編集':'項目を追加'}（${L.n}）</h3><label>名称</label><input id="en" value="${esc(it[0])}"><div class="g2"><div><label>料金（円）</label><input id="ep" type="number" inputmode="numeric" value="${it[1]}"></div><div><label>追加・施術時間（分）</label><input id="em" type="number" inputmode="numeric" value="${it[2]}"></div></div><label>説明文（お客様の予約画面に表示されます）</label><textarea id="ed" rows="3" maxlength="200" placeholder="例）自然なボリュームで、目元をやさしく印象づけます">${esc(it[4]||'')}</textarea><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveI()">保存</button><div class="sp"></div>${s.i>=0?`<button class="btn d" onclick="delI()">この項目を削除</button><div class="sp"></div>`:''}<button class="btn o" onclick="cl()">閉じる</button>`;
  }
 
+ if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
+  h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
  if(s.t==='pb'){const b=D.pb.find(x=>x.id===s.id);if(!b){cl();return}
   h=`<h3>${esc(b.title)}</h3><div class="kv"><span>日付</span><span>${b.date.replace(/-/g,'/')}</span></div><div class="kv"><span>時間</span><span>${fmt(b.start)}〜${fmt(b.end)}</span></div><p class="mute">この時間は、お客様の予約画面でも予約できません。</p><div class="sp"></div><button class="btn" onclick="op({t:'pf',id:'${b.id}'})">変更する</button><div class="sp"></div><button class="btn d" onclick="delPb('${b.id}')">この予定を削除</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
  if(s.t==='pf'){const b=s.id?D.pb.find(x=>x.id===s.id):{date:S.date,start:s.start||720,end:(s.start||720)+60,title:''};
@@ -250,7 +258,7 @@ function sheet(){
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>電話</span><span>${esc(c.tel||'-')}</span></div><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
   <label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(D.cu[c.k]||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">メモを保存</button><div class="sp"></div>
-  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
+  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
 }

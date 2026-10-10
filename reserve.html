@@ -77,9 +77,9 @@ function buildMenus(rows){
  rows.filter(r=>r.kind==='menu').forEach(r=>{if(!g[r.grp]){g[r.grp]=[];order.push(r.grp)}g[r.grp].push(r)});
  return order.map((n,mi)=>{
   const it=g[n].map(r=>{const m=r.name.match(PERIOD);return{id:r.id,full:r.name,row:m?m[1]:null,per:m?m[2]:null,price:r.price,min:r.minutes,desc:r.description||''}});
-  const og=opt.filter(o=>o.grp===OPT_FOR[n]).map(o=>({id:o.id,name:o.name,price:o.price,min:o.minutes,desc:o.description||'',skip:SKIP[o.name]||[],no:[]}));
+  const og=opt.filter(o=>o.grp===((SET.optMap&&Object.keys(SET.optMap).length?SET.optMap:OPT_FOR)[n])).map(o=>({id:o.id,name:o.name,price:o.price,min:o.minutes,desc:o.description||'',skip:SKIP[o.name]||[],no:[]}));
   NOPAIR.forEach(([a,b])=>{const A=og.find(o=>o.name===a),B=og.find(o=>o.name===b);if(A&&B){A.no.push(B.id);B.no.push(A.id)}});
-  const m={id:'m'+mi,name:n,desc:'¥'+Math.min(...it.map(x=>x.price)).toLocaleString()+'〜',options:og};
+  const m={id:'m'+mi,name:n,desc:'',options:og};
   if(it.every(x=>x.row)){ // 「◯◯ 期間」がそろっている → 行を選んでから期間を選ぶ
    const per=[...new Set(it.map(x=>x.per))];m.pick='メニュー';m.period=per;
    m.rows=[...new Set(it.map(x=>x.row))].map(rn=>{const xs=it.filter(x=>x.row===rn);return{name:rn,min:xs[0].min,desc:(xs.find(x=>x.desc)||{}).desc||'',cells:per.map(p=>xs.find(y=>y.per===p)||null)}});
@@ -96,9 +96,9 @@ const Api={
   const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
 let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
-Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays').eq('id',1).single(),SB.from('closed_dates').select('date')]);
+Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map').eq('id',1).single(),SB.from('closed_dates').select('date')]);
  if(a.error||b.error)throw a.error||b.error;const hs=Object.values(a.data.hours);
- SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
+ SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
 function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.closedD.has(s))return null;if(!SET.hours)return{o:SET.o,c:SET.c};const h=SET.hours[d.getDay()];return h?{o:toMin(h.open),c:toMin(h.close)}:null}
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
@@ -107,8 +107,8 @@ function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  return'予約を確定できませんでした。通信状況をご確認のうえ、もう一度お試しください。'}
 async function init(){const A=document.getElementById('app');
  if(!SB){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">予約システムの準備中です。</p>';return}
- try{await Api.loadMenu()}catch(e){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">メニューを読み込めませんでした。<br>時間をおいてもう一度お試しください。</p>';return}
  try{await Api.loadSettings()}catch(e){}
+ try{await Api.loadMenu()}catch(e){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">メニューを読み込めませんでした。<br>時間をおいてもう一度お試しください。</p>';return}
  render()}
 
 /* ===== util ===== */
@@ -133,7 +133,7 @@ function render(){
  if(S.step>0&&k!=='done')h+=`<button class="back" onclick="go(S.step-1)">← 戻る</button>`;
  let bar='';
  if(k==='menu'){
-  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}<div class="mute">${m.desc}</div></div><span class="mute">›</span></div></button>`).join('');
+  h+=`<h2>メニューを選択</h2><p class="sub">ご希望のカテゴリーをお選びください</p>`+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}${m.desc?`<div class="mute">${m.desc}</div>`:''}</div><span class="mute">›</span></div></button>`).join('');
  }
  if(k==='detail'){
   const m=S.menu;h+=`<h2>${m.name}</h2>`;
