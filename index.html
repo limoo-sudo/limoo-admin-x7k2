@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
+<script>/* LINE(LIFF)から開かれたときは、管理画面ではなく、お客様用のページ（予約・予約の確認・連携）へ移動 */
+(function(){try{var s=new URLSearchParams(location.search).get('liff.state');if(s){location.replace(location.pathname.replace(/[^/]*$/,'')+s.replace(/^\//,''));}}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>limoo 管理</title>
 <meta name="robots" content="noindex,nofollow">
