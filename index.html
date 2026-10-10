@@ -71,11 +71,11 @@ async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
  const[b,m]=await Promise.all([
   SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo)').order('start_at').limit(5000),
-  SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active').order('sort')]);
+  SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort')]);
  if(b.error||m.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
- const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[]};gs.push(g)}if(x.active)g.items.push([x.name,x.price,x.minutes,x.id])});return gs};
+ const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[]};gs.push(g)}if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
 async function refresh(){await loadAll();render()}
 async function dbSaveBk(id,r,vi){
@@ -126,7 +126,7 @@ function renderApp(){
   h+=`<h3 style="font-weight:300;margin:18px 0 8px">お客様</h3><input id="q" type="search" placeholder="名前・電話番号で検索" value="${esc(S.q||'')}" oninput="S.q=this.value;cuList()" style="margin-bottom:12px"><div id="cl"></div>`;
  }else{
   h+=`<h3 style="font-weight:300;margin:18px 0 0">メニュー・価格・施術時間</h3><p class="mute">項目をタップして編集できます</p>`;
-  const sec=(k,list)=>list.map((g,gi)=>`<div class="grp">${g.n}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span>${esc(it[0])}</span><span class="mute">${yen(it[1])} ／ ${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
+  const sec=(k,list)=>list.map((g,gi)=>`<div class="grp">${g.n}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
   h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
  }
  A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<button class="btn" onclick="op({t:'f'})">＋ 予約を追加</button>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button></div></div></div>`;
@@ -166,7 +166,7 @@ function sheet(){
   <div class="g2"><div><label>日付</label><input id="fd" type="date" value="${b.date}"></div><div><label>開始</label><select id="fs">${tm}</select></div><div><label>施術時間（分）</label><input id="fm" type="number" inputmode="numeric" step="5" value="${b.min}"></div><div><label>料金（円）</label><input id="fp" type="number" inputmode="numeric" value="${b.price}"></div></div><label>備考</label><input id="fo" value="${esc(b.memo||'')}"><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveF('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'bk',id:'${s.id}'})`:'cl()'}">戻る</button>`;
  }
  if(s.t==='it'){const L=D[s.k][s.g],it=s.i>=0?L.items[s.i]:['','',''];
-  h=`<h3>${s.i>=0?'項目を編集':'項目を追加'}（${L.n}）</h3><label>名称</label><input id="en" value="${esc(it[0])}"><div class="g2"><div><label>料金（円）</label><input id="ep" type="number" inputmode="numeric" value="${it[1]}"></div><div><label>追加・施術時間（分）</label><input id="em" type="number" inputmode="numeric" value="${it[2]}"></div></div><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveI()">保存</button><div class="sp"></div>${s.i>=0?`<button class="btn d" onclick="delI()">この項目を削除</button><div class="sp"></div>`:''}<button class="btn o" onclick="cl()">閉じる</button>`;
+  h=`<h3>${s.i>=0?'項目を編集':'項目を追加'}（${L.n}）</h3><label>名称</label><input id="en" value="${esc(it[0])}"><div class="g2"><div><label>料金（円）</label><input id="ep" type="number" inputmode="numeric" value="${it[1]}"></div><div><label>追加・施術時間（分）</label><input id="em" type="number" inputmode="numeric" value="${it[2]}"></div></div><label>説明文（お客様の予約画面に表示されます）</label><textarea id="ed" rows="3" maxlength="200" placeholder="例）自然なボリュームで、目元をやさしく印象づけます">${esc(it[4]||'')}</textarea><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveI()">保存</button><div class="sp"></div>${s.i>=0?`<button class="btn d" onclick="delI()">この項目を削除</button><div class="sp"></div>`:''}<button class="btn o" onclick="cl()">閉じる</button>`;
  }
 
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
@@ -194,7 +194,7 @@ async function saveF(id){
 async function cancelB(id){const r=await SB.from('bookings').update({status:'canceled'}).eq('id',id);if(r.error){alert('キャンセルできませんでした');return}await refresh();cl()}
 async function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m=+$('em').value;
  if(!n||isNaN(p)||isNaN(m)||$('ep').value===''||$('em').value==='')return $('fe').textContent='名称・料金・時間を入力してください';
- const g=D[s.k][s.g],r=s.i>=0?await SB.from('menu_items').update({name:n,price:p,minutes:m}).eq('id',g.items[s.i][3]):await SB.from('menu_items').insert({kind:s.k==='cat'?'menu':'option',grp:g.n,name:n,price:p,minutes:m,sort:Math.floor(Date.now()/1000)});
+ const g=D[s.k][s.g],r=s.i>=0?await SB.from('menu_items').update({name:n,price:p,minutes:m,description:$('ed').value.trim()||null}).eq('id',g.items[s.i][3]):await SB.from('menu_items').insert({kind:s.k==='cat'?'menu':'option',grp:g.n,name:n,price:p,minutes:m,sort:Math.floor(Date.now()/1000),description:$('ed').value.trim()||null});
  if(r.error)return $('fe').textContent='保存できませんでした';await refresh();cl()}
 async function delI(){const s=S.sheet,r=await SB.from('menu_items').update({active:false}).eq('id',D[s.k][s.g].items[s.i][3]);if(r.error){alert('削除できませんでした');return}await refresh();cl()}
 boot();
