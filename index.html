@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>limoo 管理</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#faf8f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="limoo管理">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--bg:#faf8f3;--fg:#2b2b2b;--mute:#8a867d;--line:#e6e1d6;--card:#fff;--acc:#2b2b2b;--accfg:#fff;--red:#b3402f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19;--red:#e0806f}}
+:root[data-theme="dark"]{--bg:#1c1b19;--fg:#eee9df;--mute:#9b968b;--line:#35332f;--card:#262522;--acc:#eee9df;--accfg:#1c1b19;--red:#e0806f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.5}
+#app{max-width:560px;margin:0 auto;padding:14px 18px 170px}
+.top{display:flex;justify-content:space-between;align-items:baseline}.logo{font-size:22px;letter-spacing:.3em;font-weight:200}.mute{color:var(--mute);font-size:12px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px}.nav b{font-weight:300;font-size:18px}
+.ib{width:44px;height:44px;border:1px solid var(--line);border-radius:22px;background:var(--card);color:var(--fg);font-size:18px;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:20px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
+.bk{display:flex;gap:14px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:14px;padding:14px 16px;margin:0 0 10px;font:inherit;cursor:pointer}
+.bk .t{width:52px;flex:none;font-size:15px}.bk.x{opacity:.4}.bk.x .n{text-decoration:line-through}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.grp{font-size:12px;color:var(--mute);margin:22px 0 8px;letter-spacing:.12em}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bar>div{max-width:560px;margin:0 auto;padding:10px 18px 0}
+.tabs{display:flex;margin-top:6px}.tabs button{flex:1;min-height:48px;border:0;background:none;color:var(--mute);font:inherit;font-size:13px;letter-spacing:.15em;cursor:pointer}.tabs button.on{color:var(--fg);border-top:2px solid var(--fg)}
+.btn{width:100%;min-height:50px;border:0;border-radius:28px;background:var(--acc);color:var(--accfg);font:inherit;font-size:14px;letter-spacing:.15em;cursor:pointer}
+.btn.o{background:none;color:var(--fg);border:1px solid var(--line)}.btn.d{background:none;color:var(--red);border:1px solid var(--red)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sh{width:100%;max-width:560px;max-height:92%;overflow:auto;background:var(--bg);border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px))}
+.sh h3{margin:0 0 12px;font-weight:300;font-size:18px}
+label{display:block;font-size:12px;color:var(--mute);margin:12px 0 5px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;font-size:16px;background:var(--card);color:var(--fg)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sp{height:10px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}.kv span:first-child{color:var(--mute)}
+.err{color:var(--red);font-size:12px;margin-top:8px}
+.it{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:12px;padding:13px 16px;margin-bottom:8px;font:inherit;font-size:14px;cursor:pointer}
+.tl{position:relative;margin:6px 0 10px;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.hl{position:absolute;left:0;right:0;border-top:1px solid var(--line)}.hl span{position:absolute;left:8px;top:2px;font-size:11px;color:var(--mute)}.hl.h2{left:52px;border-top:1px dotted var(--line)}.hl.h3{left:52px;border-top:1px dotted var(--line);opacity:.4}
+.off{position:absolute;left:52px;right:0;background:var(--line);opacity:.5}
+.blk{position:absolute;left:54px;right:4px;border:0;border-radius:10px;background:var(--acc);color:var(--accfg);padding:5px 10px;text-align:left;font:inherit;font-size:12px;line-height:1.35;overflow:hidden;cursor:pointer}
+.blk div{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now{position:absolute;left:46px;right:0;border-top:2px solid var(--red);z-index:2;pointer-events:none}
+</style></head><body><div id="app"></div><div id="sheet"></div>
+<script>
+/* ===== データ（Supabaseの menus / options / bookings テーブルに置換予定。ここでは localStorage でデモ保存） ===== */
+const CAT=[
+{n:'まつ毛パーマ',items:[['上 6週間以内',5500,60],['上 6週間以降',6000,60],['下のみ',3500,45],['上下',8500,75],['上＋美眉スタイリング',10500,90]]},
+{n:'フラットラッシュ',items:[['80本 1ヶ月以内',4900,60],['80本 1ヶ月以降',5900,60],['100本 1ヶ月以内',5500,60],['100本 1ヶ月以降',6500,60],['120本 1ヶ月以内',6100,75],['120本 1ヶ月以降',7100,75],['140本 1ヶ月以内',6700,75],['140本 1ヶ月以降',7700,75],['160本 1ヶ月以内',7300,90],['160本 1ヶ月以降',8300,90]]},
+{n:'Wフラット',items:[['60束 1ヶ月以内',6400,60],['60束 1ヶ月以降',7400,60],['80束 1ヶ月以内',7300,75],['80束 1ヶ月以降',8300,75],['100束 1ヶ月以内',8100,90],['100束 1ヶ月以降',9100,90],['つけ放題 1ヶ月以内',9000,90],['つけ放題 1ヶ月以降',10000,90]]},
+{n:'アイブロウ',items:[['レディース 2ヶ月以内',5000,60],['レディース 2ヶ月以降',5500,60],['メンズ 2ヶ月以内',4500,60],['メンズ 2ヶ月以降',5000,60]]},
+{n:'フェイシャルワックス',items:[['フェイシャルワックス',3000,30]]}];
+const OPTS=[
+{n:'マツエク系オプション',items:[['LEDマツエクに変更',1000,10],['&Healthy / アゲエク',3000,0],['当店付け替えオフ',500,10],['他店付け替えオフ',1000,10]]},
+{n:'まつ毛パーマ系オプション',items:[['下まつ毛パーマ',3500,30],['美眉スタイリング',3000,20],['眉毛パーマ',2000,20]]},
+{n:'アイブロウ系オプション',items:[['眉毛パーマ',2000,20]]}];
+const CFG={open:540,close:1200};
+const KEY='limoo_admin_v2';
+const ld=()=>{try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}};
+const sv=()=>{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}};
+const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
+const TODAY=dstr(new Date());
+function seed(){const b=[];const P=(o,t,m,n,tel,it,p)=>b.push({id:'b'+b.length,date:addD(TODAY,o),start:t,min:m,name:n,tel,item:it,price:p,memo:'',status:'ok'});
+ P(0,600,60,'田中 美咲','090-1111-2222','上 6週間以内',5500);P(0,840,90,'佐藤 あや','080-3333-4444','160本 1ヶ月以内',7300);P(0,1005,60,'鈴木 りな','090-5555-6666','レディース 2ヶ月以内',5000);
+ P(1,720,75,'高橋 ゆい','090-7777-8888','120本 1ヶ月以降',7100);P(1,900,90,'伊藤 まい','080-9999-0000','つけ放題 1ヶ月以内',9000);P(2,600,75,'渡辺 さくら','090-1212-3434','80束 1ヶ月以内',7300);P(-7,600,60,'田中 美咲','090-1111-2222','上 6週間以内',5500);P(-35,600,60,'田中 美咲','090-1111-2222','上 6週間以降',6000);P(-21,840,90,'佐藤 あや','080-3333-4444','160本 1ヶ月以内',7300);P(-14,1005,60,'鈴木 りな','090-5555-6666','レディース 2ヶ月以降',5500);P(-10,720,75,'高橋 ゆい','090-7777-8888','120本 1ヶ月以内',6100);P(-30,900,90,'伊藤 まい','080-9999-0000','つけ放題 1ヶ月以降',10000);return b}
+let D=ld()||{cat:CAT,opts:OPTS,bk:seed()};
+D.cu=D.cu||{};
+let S={tab:'bk',date:TODAY,sheet:null};
+const WD='日月火水木金土';
+const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const yen=n=>'¥'+Number(n).toLocaleString();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
+
+function render(){
+ const A=$('app');let h=`<div class="top"><span class="logo">limoo</span><span class="mute">管理画面（デモ）</span></div>`;
+ if(S.tab==='bk'){
+  const d=new Date(S.date+'T00:00:00'),L=dayB(),ok=L.filter(b=>b.status==='ok');
+  h+=`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</b><button class="ib" onclick="mv(1)">›</button></div>
+  <div class="row" style="margin-bottom:14px"><span class="mute">${ok.length}件 ／ ${yen(ok.reduce((a,b)=>a+b.price,0))}</span><button class="chip" onclick="S.date=TODAY;render()">今日</button></div>`;
+  h+=tl(L);
+ }else if(S.tab==='cu'){
+  h+=`<h3 style="font-weight:300;margin:18px 0 8px">お客様</h3><input id="q" type="search" placeholder="名前・電話番号で検索" value="${esc(S.q||'')}" oninput="S.q=this.value;cuList()" style="margin-bottom:12px"><div id="cl"></div>`;
+ }else{
+  h+=`<h3 style="font-weight:300;margin:18px 0 0">メニュー・価格・施術時間</h3><p class="mute">項目をタップして編集できます</p>`;
+  const sec=(k,list)=>list.map((g,gi)=>`<div class="grp">${g.n}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span>${esc(it[0])}</span><span class="mute">${yen(it[1])} ／ ${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
+  h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
+ }
+ A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<button class="btn" onclick="op({t:'f'})">＋ 予約を追加</button>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button></div></div></div>`;
+ sheet();if(S.tab==='cu')cuList();
+}
+const H0=480,H1=1260,PH=88;
+function tl(L){
+ const y=m=>(m-H0)/60*PH;let g='';
+ for(let m=H0;m<H1;m+=60)g+=`<div class="hl" style="top:${y(m)}px"><span>${fmt(m)}</span></div><div class="hl h2" style="top:${y(m+30)}px"></div><div class="hl h3" style="top:${y(m+15)}px"></div><div class="hl h3" style="top:${y(m+45)}px"></div>`;
+ const off=`<div class="off" style="top:0;height:${y(CFG.open)}px"></div><div class="off" style="top:${y(CFG.close)}px;height:${y(H1)-y(CFG.close)}px"></div>`;
+ const bk=L.filter(b=>b.status==='ok').map(b=>`<button class="blk" style="top:${y(b.start)}px;height:${b.min/60*PH-2}px" onclick="op({t:'bk',id:'${b.id}'})"><b style="font-weight:400">${fmt(b.start)}-${fmt(b.start+b.min)}</b>　${esc(b.name)} 様<div>${esc(b.item)}</div></button>`).join('');
+ let now='';if(S.date===TODAY){const d=new Date(),m=d.getHours()*60+d.getMinutes();if(m>=H0&&m<H1)now=`<div class="now" style="top:${y(m)}px"></div>`}
+ return `<div class="tl" style="height:${y(H1)}px" onclick="tlTap(event)">${g}${off}${bk}${now}</div><p class="mute" style="text-align:center">空いている時間をタップすると予約を追加できます</p>`}
+function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.getBoundingClientRect();let m=H0+Math.floor((e.clientY-r.top)/PH*60/15)*15;op({t:'f',start:Math.max(CFG.open,Math.min(CFG.close-15,m))})}
+const ck=b=>b.name.replace(/\s/g,'')+'|'+(b.tel||'').replace(/\D/g,'');
+function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',L:[]}).L.push(b)});
+ return Object.values(m).map(c=>{const ok=c.L.filter(b=>b.status==='ok'),past=ok.filter(b=>b.date<TODAY).sort((a,b)=>b.date.localeCompare(a.date)),next=ok.filter(b=>b.date>=TODAY).sort((a,b)=>(a.date+fmt(a.start)).localeCompare(b.date+fmt(b.start)))[0];
+  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0]}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
+function cuList(){const q=(S.q||'').replace(/[\s-]/g,'').toLowerCase();
+ const L=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q));
+ $('cl').innerHTML=L.length?`<p class="mute">${L.length}名</p>`+L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>'}
+function saveCu(k){D.cu[k]=$('cm').value;sv();cl()}
+function mv(n){S.date=addD(S.date,n);render()}
+function op(s){S.sheet=s;render()}
+function cl(){S.sheet=null;render()}
+function sheet(){
+ const s=S.sheet,E=$('sheet');if(!s){E.innerHTML='';return}
+ let h='';
+ if(s.t==='bk'){const b=D.bk.find(x=>x.id===s.id);
+  h=`<h3>${esc(b.name)} 様</h3><div class="kv"><span>日時</span><span>${b.date.replace(/-/g,'/')} ${fmt(b.start)}〜${fmt(b.start+b.min)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div><div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div><div class="kv"><span>電話</span><span>${esc(b.tel||'-')}</span></div><div class="kv"><span>備考</span><span>${esc(b.memo||'-')}</span></div><div class="sp"></div>`+
+  (b.status==='ok'?`<button class="btn" onclick="op({t:'f',id:'${b.id}'})">変更する</button><div class="sp"></div>${s.c?`<button class="btn d" onclick="cancelB('${b.id}')">本当にキャンセルする</button>`:`<button class="btn d" onclick="S.sheet.c=1;render()">予約をキャンセル</button>`}<div class="sp"></div>`:`<p class="mute">キャンセル済みです</p>`)+`<button class="btn o" onclick="cl()">閉じる</button>`;
+ }
+ if(s.t==='f'){const b=s.id?D.bk.find(x=>x.id===s.id):{date:S.date,start:s.start||600,min:60,name:(s.cust||{}).name||'',tel:(s.cust||{}).tel||'',item:'',price:0,memo:''};
+  let tm='';for(let m=CFG.open;m<CFG.close;m+=15)tm+=`<option value="${m}" ${m===b.start?'selected':''}>${fmt(m)}</option>`;
+  let it='<option value="">選択してください</option>';D.cat.forEach((g,gi)=>{it+=`<optgroup label="${g.n}">`+g.items.map((x,i)=>`<option value="${gi}:${i}" ${x[0]===b.item?'selected':''}>${x[0]}</option>`).join('')+`</optgroup>`});
+  h=`<h3>${s.id?'予約を変更':'予約を追加'}</h3><label>お名前</label><input id="fn" value="${esc(b.name)}"><label>電話番号</label><input id="ft" type="tel" value="${esc(b.tel||'')}"><label>メニュー</label><select id="fi" onchange="pickIt()">${it}</select>
+  <div class="g2"><div><label>日付</label><input id="fd" type="date" value="${b.date}"></div><div><label>開始</label><select id="fs">${tm}</select></div><div><label>施術時間（分）</label><input id="fm" type="number" inputmode="numeric" step="5" value="${b.min}"></div><div><label>料金（円）</label><input id="fp" type="number" inputmode="numeric" value="${b.price}"></div></div><label>備考</label><input id="fo" value="${esc(b.memo||'')}"><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveF('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'bk',id:'${s.id}'})`:'cl()'}">戻る</button>`;
+ }
+ if(s.t==='it'){const L=D[s.k][s.g],it=s.i>=0?L.items[s.i]:['','',''];
+  h=`<h3>${s.i>=0?'項目を編集':'項目を追加'}（${L.n}）</h3><label>名称</label><input id="en" value="${esc(it[0])}"><div class="g2"><div><label>料金（円）</label><input id="ep" type="number" inputmode="numeric" value="${it[1]}"></div><div><label>追加・施術時間（分）</label><input id="em" type="number" inputmode="numeric" value="${it[2]}"></div></div><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveI()">保存</button><div class="sp"></div>${s.i>=0?`<button class="btn d" onclick="delI()">この項目を削除</button><div class="sp"></div>`:''}<button class="btn o" onclick="cl()">閉じる</button>`;
+ }
+
+ if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
+  const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}</span></div>`).join('');
+  h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>電話</span><span>${esc(c.tel||'-')}</span></div><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
+  <label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(D.cu[c.k]||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
+  <button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">メモを保存</button><div class="sp"></div>
+  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
+ }
+ E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
+}
+function pickIt(){const v=$('fi').value;if(!v)return;const[g,i]=v.split(':'),x=D.cat[g].items[i];$('fm').value=x[2];$('fp').value=x[1]}
+function saveF(id){
+ const v=k=>$(k).value.trim(),name=v('fn'),vi=v('fi'),date=v('fd'),st=+v('fs'),min=+v('fm'),price=+v('fp'),er=m=>{$('fe').textContent=m};
+ if(!name)return er('お名前を入力してください');
+ if(!vi&&!id)return er('メニューを選択してください');
+ if(!date||!(min>0))return er('日付と施術時間を確認してください');
+ if(st+min>CFG.close)return er('営業時間（'+fmt(CFG.close)+'まで）を超えています');
+ if(D.bk.some(b=>b.id!==id&&b.date===date&&b.status==='ok'&&st<b.start+b.min&&st+min>b.start))return er('その時間は他の予約と重なっています');
+ const item=vi?(x=>D.cat[x[0]].items[x[1]][0])(vi.split(':')):D.bk.find(b=>b.id===id).item;
+ const rec={date,start:st,min,name,tel:v('ft'),item,price,memo:v('fo')};
+ if(id)Object.assign(D.bk.find(b=>b.id===id),rec);else D.bk.push({id:'b'+Date.now(),status:'ok',...rec});
+ sv();S.date=date;cl();
+}
+function cancelB(id){D.bk.find(b=>b.id===id).status='x';sv();cl()}
+function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m=+$('em').value;
+ if(!n||isNaN(p)||isNaN(m)||$('ep').value===''||$('em').value==='')return $('fe').textContent='名称・料金・時間を入力してください';
+ const L=D[s.k][s.g].items;s.i>=0?L[s.i]=[n,p,m]:L.push([n,p,m]);sv();cl()}
+function delI(){const s=S.sheet;D[s.k][s.g].items.splice(s.i,1);sv();cl()}
+render();
+if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js')}catch(e){}});
+</script></body></html>
