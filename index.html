@@ -46,6 +46,19 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .blk div{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now{position:absolute;left:46px;right:0;border-top:2px solid var(--red);z-index:2;pointer-events:none}
 .lg{max-width:340px;margin:14vh auto 0;text-align:center}.lg form{text-align:left}.lg .logo{font-size:30px;margin-bottom:6px}
+.seg{display:flex;background:var(--line);border-radius:12px;padding:3px;margin-top:14px}.seg button{flex:1;min-height:38px;border:0;border-radius:10px;background:none;color:var(--mute);font:inherit;font-size:14px;cursor:pointer}.seg button.on{background:var(--card);color:var(--fg)}
+.closedl{position:absolute;left:52px;right:0;top:40%;text-align:center;color:var(--mute);font-size:14px;letter-spacing:.3em}
+.wkh{display:grid;grid-template-columns:30px repeat(7,1fr);margin-bottom:4px}.wkh button{border:0;background:none;color:var(--fg);font:inherit;font-size:15px;line-height:1.2;padding:6px 0;border-radius:10px;cursor:pointer}.wkh small{font-size:10px;color:var(--mute)}.wkh .td{background:var(--acc);color:var(--accfg)}.wkh .td small{color:inherit}.wkh .cl{opacity:.4}
+.wkb{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:8px}.wkb .hl span{left:6px;font-size:10px}
+.woff{position:absolute;background:var(--line);opacity:.5}
+.wev{position:absolute;box-sizing:border-box;background:var(--acc);color:var(--accfg);border:1px solid var(--card);border-radius:5px;font-size:10px;line-height:1.2;padding:2px;overflow:hidden;cursor:pointer}
+.wev.pb{background:repeating-linear-gradient(135deg,var(--line) 0 4px,transparent 4px 8px);border-color:var(--line)}
+.mon{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.mon .wd{text-align:center;font-size:11px;color:var(--mute);padding:4px 0}
+.mc{min-height:62px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:5px;font:inherit;color:var(--fg);cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start}
+.mc b{font-weight:300;font-size:13px}.mc .n{align-self:flex-end;background:var(--acc);color:var(--accfg);border-radius:10px;font-size:11px;padding:0 6px}
+.mc.o{opacity:.35}.mc.cl{background:repeating-linear-gradient(135deg,transparent 0 5px,var(--line) 5px 6px)}.mc.td{border-color:var(--fg)}
+.hr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.hr select{width:auto;flex:1}
+.note2{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:10px 0}.note2 .hr{border:0;padding:0}
 .blk.pb{background:repeating-linear-gradient(135deg,var(--line) 0 6px,transparent 6px 12px);color:var(--fg);border:1px solid var(--line)}
 .blk.pb div,.blk.pb b{opacity:1}
 </style>
@@ -53,12 +66,14 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 <script src="config.js"></script></head><body><div id="app"></div><div id="sheet"></div>
 <script>
 /* ===== データ：Supabase（bookings / customers / menu_items）。メモリ上の D に読み込んで描画 ===== */
-const CFG={open:540,close:1200};
+const CFG={open:540,close:1200}; // 営業時間の最小〜最大（設定から自動計算）
 const sv=()=>{};
 const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addD=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return dstr(d)};
 const TODAY=dstr(new Date());
-let D={cat:[],opts:[],bk:[],cu:{},pb:[]};let STAFF=null;
+let D={cat:[],opts:[],bk:[],cu:{},pb:[],set:{hours:{0:{open:'09:00',close:'20:00'},1:{open:'09:00',close:'20:00'},2:{open:'09:00',close:'20:00'},3:{open:'09:00',close:'20:00'},4:{open:'09:00',close:'20:00'},5:{open:'09:00',close:'20:00'},6:{open:'09:00',close:'20:00'}},closedW:[3],closedD:new Set(),closedList:[]}};
+const toM=t=>{const[a,b]=String(t).split(':');return +a*60+ +b};
+function dayH(s){const d=new Date(s+'T00:00:00').getDay(),st=D.set;if(st.closedW.includes(d)||st.closedD.has(s))return null;const h=st.hours[d];return h?{o:toM(h.open),c:toM(h.close)}:null}let STAFF=null;
 D.cu=D.cu||{};
 let S={tab:'bk',date:TODAY,sheet:null};
 const WD='日月火水木金土';
@@ -71,14 +86,18 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m,t]=await Promise.all([
-  SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo,archived)').order('start_at').limit(5000),
+ const[b,m,t,st,cd]=await Promise.all([
+  SB.from('bookings').select('id,customer_id,item,price,memo,start_at,end_at,status,customers(name,tel,memo)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
-  SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at')]);
- if(b.error||m.error||t.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
- D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',archived:r.customers.archived===true,item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
+  SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
+  SB.from('salon_settings').select('hours,closed_weekdays').eq('id',1).single(),
+  SB.from('closed_dates').select('date,note').order('date')]);
+ if(b.error||m.error||t.error||st.error||cd.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+ D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x'}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
+ D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data};
+ {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
@@ -122,13 +141,10 @@ function render(){
  renderApp()}
 function renderApp(){
  const A=$('app');let h=`<div class="top"><span class="logo">limoo</span><button class="chip" onclick="logout()">ログアウト</button></div>`;
- if(S.tab==='bk'){
-  const d=new Date(S.date+'T00:00:00'),L=dayB(),ok=L.filter(b=>b.status==='ok');
-  h+=`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</b><button class="ib" onclick="mv(1)">›</button></div>
-  <div class="row" style="margin-bottom:14px"><span class="mute">${ok.length}件 ／ ${yen(ok.reduce((a,b)=>a+b.price,0))}</span><button class="chip" onclick="S.date=TODAY;render()">今日</button></div>`;
-  h+=tl(L);
+ if(S.tab==='bk'){h+=bkView();
+ }else if(S.tab==='st'){h+=setView()
  }else if(S.tab==='cu'){
-  h+=`<h3 style="font-weight:300;margin:18px 0 8px">お客様</h3><div style="display:flex;gap:8px;margin-bottom:12px"><button class="chip ${!S.showArchived?'on':''}" onclick="S.showArchived=false;render()">お客様</button><button class="chip ${S.showArchived?'on':''}" onclick="S.showArchived=true;render()">非表示のお客様</button></div><input id="q" type="search" placeholder="名前・電話番号で検索" value="${esc(S.q||'')}" oninput="S.q=this.value;cuList()" style="margin-bottom:12px"><div id="cl"></div>`;
+  h+=`<h3 style="font-weight:300;margin:18px 0 8px">お客様</h3><input id="q" type="search" placeholder="名前・電話番号で検索" value="${esc(S.q||'')}" oninput="S.q=this.value;cuList()" style="margin-bottom:12px"><div id="cl"></div>`;
  }else{
   h+=`<div class="row" style="margin:18px 0 4px"><h3 style="font-weight:300;margin:0">メニュー・価格・施術時間</h3><button class="chip" onclick="S.sort=!S.sort;render()">${S.sort?'完了':'並び替え'}</button></div><p class="mute">${S.sort?'▲▼で順番を入れ替えます（お客様の予約画面にも反映されます）':'項目をタップして編集できます'}</p>`;
   const ar=(up,dn,u,d)=>`<span style="display:flex;gap:6px;flex:none"><button class="ib" ${u?'disabled style="opacity:.25"':''} onclick="${up}">▲</button><button class="ib" ${d?'disabled style="opacity:.25"':''} onclick="${dn}">▼</button></span>`;
@@ -137,44 +153,74 @@ function renderApp(){
    :`<div class="grp">${esc(g.n)}</div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
   h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
  }
- A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button></div></div></div>`;
+ A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button><button class="${S.tab==='st'?'on':''}" onclick="S.tab='st';render()">設定</button></div></div></div>`;
  sheet();if(S.tab==='cu')cuList();
 }
-const H0=480,H1=1260,PH=88;
+let H0=480,H1=1260;const PH=88,WPH=40;
 function tl(L){
  const y=m=>(m-H0)/60*PH;let g='';
  for(let m=H0;m<H1;m+=60)g+=`<div class="hl" style="top:${y(m)}px"><span>${fmt(m)}</span></div><div class="hl h2" style="top:${y(m+30)}px"></div><div class="hl h3" style="top:${y(m+15)}px"></div><div class="hl h3" style="top:${y(m+45)}px"></div>`;
- const off=`<div class="off" style="top:0;height:${y(CFG.open)}px"></div><div class="off" style="top:${y(CFG.close)}px;height:${y(H1)-y(CFG.close)}px"></div>`;
+ const hh=dayH(S.date),off=hh?`<div class="off" style="top:0;height:${y(hh.o)}px"></div><div class="off" style="top:${y(hh.c)}px;height:${y(H1)-y(hh.c)}px"></div>`:`<div class="off" style="top:0;height:${y(H1)}px"></div><div class="closedl">休業日</div>`;
  const bk=L.filter(b=>b.status==='ok').map(b=>`<button class="blk" style="top:${y(b.start)}px;height:${b.min/60*PH-2}px" onclick="op({t:'bk',id:'${b.id}'})"><b style="font-weight:400">${fmt(b.start)}-${fmt(b.start+b.min)}</b>　${esc(b.name)} 様<div>${esc(b.item)}</div></button>`).join('');
  const pb=D.pb.filter(x=>x.date===S.date).map(x=>`<button class="blk pb" style="top:${y(x.start)}px;height:${(x.end-x.start)/60*PH-2}px" onclick="op({t:'pb',id:'${x.id}'})"><b style="font-weight:400">${fmt(x.start)}-${fmt(x.end)}</b>　${esc(x.title)}</button>`).join('');
  let now='';if(S.date===TODAY){const d=new Date(),m=d.getHours()*60+d.getMinutes();if(m>=H0&&m<H1)now=`<div class="now" style="top:${y(m)}px"></div>`}
  return `<div class="tl" style="height:${y(H1)}px" onclick="tlTap(event)">${g}${off}${bk}${pb}${now}</div><p class="mute" style="text-align:center">空いている時間をタップすると予約を追加できます</p>`}
-function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.getBoundingClientRect();let m=H0+Math.floor((e.clientY-r.top)/PH*60/15)*15;op({t:'f',start:Math.max(CFG.open,Math.min(CFG.close-15,m))})}
+function tlTap(e){if(e.target.closest('.blk'))return;const r=e.currentTarget.getBoundingClientRect();let m=H0+Math.floor((e.clientY-r.top)/PH*60/15)*15;op({t:'f',start:Math.max(H0,Math.min(H1-15,m))})}
 const ck=b=>b.name.replace(/\s/g,'')+'|'+(b.tel||'').replace(/\D/g,'');
 function custs(){const m={};D.bk.forEach(b=>{const k=ck(b);(m[k]=m[k]||{k,name:b.name,tel:b.tel||'',L:[]}).L.push(b)});
  return Object.values(m).map(c=>{const ok=c.L.filter(b=>b.status==='ok'),past=ok.filter(b=>b.date<TODAY).sort((a,b)=>b.date.localeCompare(a.date)),next=ok.filter(b=>b.date>=TODAY).sort((a,b)=>(a.date+fmt(a.start)).localeCompare(b.date+fmt(b.start)))[0];
-  return {...c,archived:c.L.every(b=>b.archived),past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0]}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
+  return {...c,past,next,total:past.reduce((a,b)=>a+b.price,0),last:past[0]}}).sort((a,b)=>(b.last?b.last.date:'0').localeCompare(a.last?a.last.date:'0'))}
 function cuList(){const q=(S.q||'').replace(/[\s-]/g,'').toLowerCase();
- const L=custs().filter(c=>c.archived===!!S.showArchived&&(!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q)));
+ const L=custs().filter(c=>!q||(c.name.replace(/\s/g,'')+c.tel.replace(/\D/g,'')).toLowerCase().includes(q));
  $('cl').innerHTML=L.length?`<p class="mute">${L.length}名</p>`+L.map(c=>`<button class="it" onclick="op({t:'cu',k:decodeURIComponent('${encodeURIComponent(c.k)}')})"><span>${esc(c.name)} 様<div class="mute">${c.last?'最終来店 '+c.last.date.replace(/-/g,'/'):'来店履歴なし'}${c.next?'　次回 '+c.next.date.slice(5).replace('-','/'):''}</div></span><span class="mute" style="text-align:right">${c.past.length}回<br>${yen(c.total)}</span></button>`).join(''):'<p class="mute" style="text-align:center;padding:30px 0">該当するお客様がいません</p>'}
 async function saveCu(k){const ids=[...new Set(D.bk.filter(b=>ck(b)===k).map(b=>b.cid))],r=await SB.from('customers').update({memo:$('cm').value}).in('id',ids);if(r.error){alert('保存できませんでした');return}await refresh();cl()}
-async function setCustomerArchived(k,archived){
- if(S.archiving)return;
- const c=custs().find(x=>x.k===k);if(!c)return;
- const message=archived?`${c.name} 様を一覧から非表示にしますか？\n予約・来店履歴と売上は残ります。次回予約もキャンセルされません。`:`${c.name} 様をお客様一覧に戻しますか？`;
- if(!confirm(message))return;
- const ids=[...new Set(c.L.map(b=>b.cid))];S.archiving=true;
- const button=$('archiveCustomer');if(button)button.disabled=true;
- try{
-  const r=await SB.from('customers').update({archived}).in('id',ids).select('id');
-  if(r.error)throw r.error;
-  if(!r.data||r.data.length!==ids.length)throw new Error('すべてのお客様情報を更新できませんでした。');
-  S.sheet=null;if(!archived)S.showArchived=false;
-  await refresh();
- }catch(e){alert('変更できませんでした。'+(e.message||'通信状況を確認してください。'))}
- finally{S.archiving=false;const b=$('archiveCustomer');if(b)b.disabled=false}
-}
-function mv(n){S.date=addD(S.date,n);render()}
+function mv(n){if(S.view==='m'){const d=new Date(S.date+'T00:00:00');d.setDate(1);d.setMonth(d.getMonth()+n);S.date=dstr(d)}else S.date=addD(S.date,n*(S.view==='w'?7:1));render()}
+const navH=t=>`<div class="nav"><button class="ib" onclick="mv(-1)">‹</button><b>${t}</b><button class="ib" onclick="mv(1)">›</button></div>`;
+const sumH=L=>`<div class="row" style="margin-bottom:14px"><span class="mute">${L.length}件 ／ ${yen(L.reduce((a,b)=>a+b.price,0))}</span><button class="chip" onclick="S.date=TODAY;render()">今日</button></div>`;
+const okIn=(a,b)=>D.bk.filter(x=>x.status==='ok'&&x.date>=a&&x.date<=b);
+const md=s=>{const d=new Date(s+'T00:00:00');return `${d.getMonth()+1}/${d.getDate()}`};
+function bkView(){const v=S.view||'d',d=new Date(S.date+'T00:00:00');
+ const seg=`<div class="seg">${[['d','日'],['w','週'],['m','月']].map(([k,l])=>`<button class="${v===k?'on':''}" onclick="S.view='${k}';render()">${l}</button>`).join('')}</div>`;
+ if(v==='w'){const s0=addD(S.date,-d.getDay()),s6=addD(s0,6);return seg+navH(`${md(s0)}〜${md(s6)}`)+sumH(okIn(s0,s6))+wkGrid(s0)}
+ if(v==='m'){const f=S.date.slice(0,8)+'01',l=dstr(new Date(d.getFullYear(),d.getMonth()+1,0));return seg+navH(`${d.getFullYear()}年${d.getMonth()+1}月`)+sumH(okIn(f,l))+monGrid(f)}
+ const L=dayB();return seg+navH(`${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）`)+sumH(L.filter(b=>b.status==='ok'))+tl(L)}
+function wkGrid(s0){const y=m=>(m-H0)/60*WPH,days=[...Array(7)].map((_,i)=>addD(s0,i));
+ let h=`<div class="wkh"><span></span>${days.map(s=>{const dd=new Date(s+'T00:00:00');return `<button class="${s===TODAY?'td':''} ${dayH(s)?'':'cl'}" onclick="S.date='${s}';S.view='d';render()">${dd.getDate()}<br><small>${WD[dd.getDay()]}</small></button>`}).join('')}</div><div class="wkb" style="height:${y(H1)}px">`;
+ for(let m=H0;m<H1;m+=60)h+=`<div class="hl" style="top:${y(m)}px"><span>${m/60}</span></div>`;
+ h+=days.map((s,i)=>{const hh=dayH(s),L=`calc(30px + (100% - 30px) * ${i} / 7)`,W=`calc((100% - 30px) / 7)`,col=(t,ht,c,inner,on)=>`<div class="${c}" style="left:${L};width:${W};top:${t}px;height:${ht}px" ${on?`onclick="${on}"`:''}>${inner||''}</div>`;
+  let c=hh?col(0,y(hh.o),'woff')+col(y(hh.c),y(H1)-y(hh.c),'woff'):col(0,y(H1),'woff');
+  c+=D.pb.filter(x=>x.date===s).map(x=>col(y(x.start),(x.end-x.start)/60*WPH-1,'wev pb','',`op({t:'pb',id:'${x.id}'})`)).join('');
+  c+=D.bk.filter(x=>x.date===s&&x.status==='ok').map(x=>col(y(x.start),x.min/60*WPH-1,'wev',esc(x.name.split(/\s/)[0]),`op({t:'bk',id:'${x.id}'})`)).join('');return c}).join('');
+ return h+`</div><p class="mute" style="text-align:center">日付をタップすると、その日の予約表を開きます</p>`}
+function monGrid(first){const f=new Date(first+'T00:00:00'),start=addD(first,-f.getDay()),mo=f.getMonth();
+ let h=`<div class="mon">${[...WD].map(w=>`<div class="wd">${w}</div>`).join('')}`;
+ for(let i=0;i<42;i++){const s=addD(start,i),dd=new Date(s+'T00:00:00');if(i%7===0&&i>0&&dd.getMonth()!==mo)break;
+  const n=D.bk.filter(x=>x.date===s&&x.status==='ok').length,cls=[dd.getMonth()!==mo?'o':'',dayH(s)?'':'cl',s===TODAY?'td':''].join(' ');
+  h+=`<button class="mc ${cls}" onclick="S.date='${s}';S.view='d';render()"><b>${dd.getDate()}</b>${n?`<span class="n">${n}件</span>`:''}</button>`}
+ return h+`</div><p class="mute" style="text-align:center;margin-top:12px">日付をタップすると、その日の予約表を開きます</p>`}
+/* ===== 設定：営業時間・定休日・臨時休業日 ===== */
+function setView(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.hours)),closedW:[...D.set.closedW]});
+ const tm=(v,on)=>{let o='';for(let m=360;m<=1380;m+=15)o+=`<option ${fmt(m)===v?'selected':''}>${fmt(m)}</option>`;return `<select onchange="${on}" style="padding:8px">${o}</select>`};
+ let h=`<h3 style="font-weight:300;margin:18px 0 4px">営業時間</h3><p class="mute">お客様の予約画面の受付時間に反映されます</p>
+ <div class="note2"><div class="mute" style="margin-bottom:6px">一括設定</div><div class="hr">${tm(S.ao||'09:00',"S.ao=this.value")}<span>〜</span>${tm(S.ac||'20:00',"S.ac=this.value")}<button class="chip" onclick="applyAll()">全曜日に適用</button></div></div>`;
+ h+=[1,2,3,4,5,6,0].map(d=>{const c=F.closedW.includes(d),x=F.hours[d]||{open:'09:00',close:'20:00'};
+  return `<div class="hr"><b style="width:22px;font-weight:400">${WD[d]}</b>${c?`<span class="mute" style="flex:1">定休日</span>`:`${tm(x.open,`S.sf.hours[${d}].open=this.value`)}<span>〜</span>${tm(x.close,`S.sf.hours[${d}].close=this.value`)}`}<label class="mute" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" style="width:20px;height:20px" ${c?'checked':''} onchange="tgW(${d},this.checked)">休み</label></div>`}).join('');
+ h+=`<div id="se" class="err"></div><div class="sp"></div><button class="btn" onclick="saveSet()">営業時間を保存</button>`;
+ const up=D.set.closedList.filter(r=>r.date>=TODAY);
+ h+=`<h3 style="font-weight:300;margin:34px 0 4px">臨時休業日</h3><p class="mute">定休日以外のお休み（旅行・研修など）。この日は予約できなくなります</p>
+ <div class="hr"><input id="cdD" type="date" style="flex:1"><input id="cdN" placeholder="メモ（任意）" style="flex:1"><button class="chip" onclick="addCD()">追加</button></div><div id="ce" class="err"></div>`+
+ (up.length?up.map(r=>`<div class="kv"><span>${r.date.replace(/-/g,'/')}（${WD[new Date(r.date+'T00:00:00').getDay()]}）</span><span>${esc(r.note||'')}　<button class="chip" onclick="delCD('${r.date}')">削除</button></span></div>`).join(''):`<p class="mute">予定されている臨時休業日はありません</p>`);
+ return h}
+function tgW(d,on){const F=S.sf;F.closedW=F.closedW.filter(x=>x!==d);if(on)F.closedW.push(d);if(!F.hours[d])F.hours[d]={open:'09:00',close:'20:00'};render()}
+function applyAll(){const o=S.ao||'09:00',c=S.ac||'20:00';for(let d=0;d<7;d++)S.sf.hours[d]={open:o,close:c};render()}
+async function saveSet(){const F=S.sf,bad=[0,1,2,3,4,5,6].filter(d=>!F.closedW.includes(d)&&toM(F.hours[d].close)<=toM(F.hours[d].open));
+ if(bad.length){$('se').textContent=bad.map(d=>WD[d]).join('・')+'曜日：終了は開始より後にしてください';return}
+ const r=await SB.from('salon_settings').update({hours:F.hours,closed_weekdays:F.closedW,updated_at:new Date().toISOString()}).eq('id',1);
+ if(r.error){$('se').textContent='保存できませんでした';return}S.sf=null;await refresh();alert('営業時間を保存しました')}
+async function addCD(){const d=$('cdD').value,n=$('cdN').value.trim();if(!d){$('ce').textContent='日付を選んでください';return}
+ const k=D.bk.filter(x=>x.date===d&&x.status==='ok').length;if(k&&!confirm(`この日は予約が${k}件あります。休業日にしても予約は消えません。追加しますか？`))return;
+ const r=await SB.from('closed_dates').insert({date:d,note:n||null});if(r.error){$('ce').textContent=r.error.code==='23505'?'すでに登録されています':'追加できませんでした';return}await refresh()}
+async function delCD(d){if(!confirm('この臨時休業日を削除しますか？'))return;const r=await SB.from('closed_dates').delete().eq('date',d);if(r.error){alert('削除できませんでした');return}await refresh()}
 function op(s){S.sheet=s;render()}
 function cl(){S.sheet=null;render()}
 function sheet(){
@@ -185,7 +231,7 @@ function sheet(){
   (b.status==='ok'?`<button class="btn" onclick="op({t:'f',id:'${b.id}'})">変更する</button><div class="sp"></div>${s.c?`<button class="btn d" onclick="cancelB('${b.id}')">本当にキャンセルする</button>`:`<button class="btn d" onclick="S.sheet.c=1;render()">予約をキャンセル</button>`}<div class="sp"></div>`:`<p class="mute">キャンセル済みです</p>`)+`<button class="btn o" onclick="cl()">閉じる</button>`;
  }
  if(s.t==='f'){const b=s.id?D.bk.find(x=>x.id===s.id):{date:S.date,start:s.start||600,min:60,name:(s.cust||{}).name||'',tel:(s.cust||{}).tel||'',item:'',price:0,memo:''};
-  let tm='';for(let m=CFG.open;m<CFG.close;m+=15)tm+=`<option value="${m}" ${m===b.start?'selected':''}>${fmt(m)}</option>`;
+  let tm='';for(let m=H0;m<H1;m+=15)tm+=`<option value="${m}" ${m===b.start?'selected':''}>${fmt(m)}</option>`;
   let it='<option value="">選択してください</option>';D.cat.forEach((g,gi)=>{it+=`<optgroup label="${g.n}">`+g.items.map((x,i)=>`<option value="${gi}:${i}" ${x[0]===b.item?'selected':''}>${x[0]}</option>`).join('')+`</optgroup>`});
   h=`<h3>${s.id?'予約を変更':'予約を追加'}</h3><label>お名前</label><input id="fn" value="${esc(b.name)}"><label>電話番号</label><input id="ft" type="tel" value="${esc(b.tel||'')}"><label>メニュー</label><select id="fi" onchange="pickIt()">${it}</select>
   <div class="g2"><div><label>日付</label><input id="fd" type="date" value="${b.date}"></div><div><label>開始</label><select id="fs">${tm}</select></div><div><label>施術時間（分）</label><input id="fm" type="number" inputmode="numeric" step="5" value="${b.min}"></div><div><label>料金（円）</label><input id="fp" type="number" inputmode="numeric" value="${b.price}"></div></div><label>備考</label><input id="fo" value="${esc(b.memo||'')}"><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveF('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'bk',id:'${s.id}'})`:'cl()'}">戻る</button>`;
@@ -197,14 +243,14 @@ function sheet(){
  if(s.t==='pb'){const b=D.pb.find(x=>x.id===s.id);if(!b){cl();return}
   h=`<h3>${esc(b.title)}</h3><div class="kv"><span>日付</span><span>${b.date.replace(/-/g,'/')}</span></div><div class="kv"><span>時間</span><span>${fmt(b.start)}〜${fmt(b.end)}</span></div><p class="mute">この時間は、お客様の予約画面でも予約できません。</p><div class="sp"></div><button class="btn" onclick="op({t:'pf',id:'${b.id}'})">変更する</button><div class="sp"></div><button class="btn d" onclick="delPb('${b.id}')">この予定を削除</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
  if(s.t==='pf'){const b=s.id?D.pb.find(x=>x.id===s.id):{date:S.date,start:s.start||720,end:(s.start||720)+60,title:''};
-  const op2=sel=>{let t='';for(let m=CFG.open;m<=CFG.close;m+=15)t+=`<option value="${m}" ${m===sel?'selected':''}>${fmt(m)}</option>`;return t};
+  const op2=sel=>{let t='';for(let m=H0;m<=H1;m+=15)t+=`<option value="${m}" ${m===sel?'selected':''}>${fmt(m)}</option>`;return t};
   h=`<h3>${s.id?'予定を変更':'予定を追加'}</h3><p class="mute">この時間は、お客様の予約画面でも予約できなくなります。</p><label>予定の内容</label><input id="pt" value="${esc(b.title)}" placeholder="例）休憩・私用・研修"><div class="g2"><div><label>日付</label><input id="pd" type="date" value="${b.date}"></div><div></div><div><label>開始</label><select id="ps">${op2(b.start)}</select></div><div><label>終了</label><select id="pe">${op2(b.end)}</select></div></div><div class="sp"></div><button class="chip" onclick="allDay()">終日（営業時間いっぱい）にする</button><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="savePb('${s.id||''}')">保存</button><div class="sp"></div><button class="btn o" onclick="${s.id?`op({t:'pb',id:'${s.id}'})`:'cl()'}">戻る</button>`}
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
   const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}</span></div>`).join('');
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>電話</span><span>${esc(c.tel||'-')}</span></div><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
   <label>施術メモ（デザイン・好み・注意点など）</label><textarea id="cm" rows="3">${esc(D.cu[c.k]||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">メモを保存</button><div class="sp"></div>
-  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button id="archiveCustomer" class="btn o" onclick="setCustomerArchived(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.archived})">${c.archived?'お客様一覧に戻す':'一覧から非表示にする'}</button><p class="mute" style="text-align:center">予約・来店履歴と売上は残ります</p><button class="btn o" onclick="cl()">閉じる</button>`;
+  <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
  E.innerHTML=`<div class="ov\" onclick="if(event.target===this)cl()"><div class="sh">${h}</div></div>`;
 }
@@ -212,7 +258,7 @@ function pickIt(){const v=$('fi').value;if(!v)return;const[g,i]=v.split(':'),x=D
 async function saveOrder(k){const r=await SB.rpc('reorder_menu',{p_ids:D[k].flatMap(g=>g.all)});if(r.error){alert('並び順を保存できませんでした');await refresh()}}
 async function mvI(k,gi,i,d){const g=D[k][gi],A=g.all.indexOf(g.items[i][3]),B=g.all.indexOf(g.items[i+d][3]);[g.all[A],g.all[B]]=[g.all[B],g.all[A]];[g.items[i],g.items[i+d]]=[g.items[i+d],g.items[i]];render();await saveOrder(k)}
 async function mvG(k,gi,d){const L=D[k];[L[gi],L[gi+d]]=[L[gi+d],L[gi]];render();await saveOrder(k)}
-function allDay(){$('ps').value=CFG.open;$('pe').value=CFG.close}
+function allDay(){const hh=dayH($('pd').value)||{o:CFG.open,c:CFG.close};$('ps').value=hh.o;$('pe').value=hh.c}
 async function savePb(id){const v=k=>$(k).value.trim(),title=v('pt'),date=v('pd'),st=+v('ps'),en=+v('pe'),er=m=>{$('fe').textContent=m};
  if(!title)return er('予定の内容を入力してください');if(!date)return er('日付を入力してください');if(!(en>st))return er('終了は開始より後にしてください');
  if(D.bk.some(b=>b.date===date&&b.status==='ok'&&st<b.start+b.min&&en>b.start))return er('この時間には予約が入っています。先に予約を変更またはキャンセルしてください');
@@ -225,7 +271,7 @@ async function saveF(id){
  if(!name)return er('お名前を入力してください');
  if(!vi&&!id)return er('メニューを選択してください');
  if(!date||!(min>0))return er('日付と施術時間を確認してください');
- if(st+min>CFG.close)return er('営業時間（'+fmt(CFG.close)+'まで）を超えています');
+ {const hh=dayH(date);if((!hh||st<hh.o||st+min>hh.c)&&!confirm(hh?'営業時間外ですが、予約を入れますか？':'休業日ですが、予約を入れますか？'))return}
  if(D.bk.some(b=>b.id!==id&&b.date===date&&b.status==='ok'&&st<b.start+b.min&&st+min>b.start))return er('その時間は他の予約と重なっています');
  if(D.pb.some(x=>x.date===date&&st<x.end&&st+min>x.start))return er('その時間は予定（休憩など）が入っています');
  const item=vi?(x=>D.cat[x[0]].items[x[1]][0])(vi.split(':')):D.bk.find(b=>b.id===id).item;

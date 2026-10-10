@@ -95,6 +95,11 @@ const Api={
  async createBooking(){const c=S.cust;
   const{data,error}=await SB.rpc('create_booking_v2',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:null,p_item:S.sel.id,p_options:[...S.opts],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
+let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
+Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays').eq('id',1).single(),SB.from('closed_dates').select('date')]);
+ if(a.error||b.error)throw a.error||b.error;const hs=Object.values(a.data.hours);
+ SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
+function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.closedD.has(s))return null;if(!SET.hours)return{o:SET.o,c:SET.c};const h=SET.hours[d.getDay()];return h?{o:toMin(h.open),c:toMin(h.close)}:null}
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
  if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
@@ -103,6 +108,7 @@ function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
 async function init(){const A=document.getElementById('app');
  if(!SB){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">予約システムの準備中です。</p>';return}
  try{await Api.loadMenu()}catch(e){A.innerHTML='<p class="sub" style="text-align:center;padding:30vh 20px 0">メニューを読み込めませんでした。<br>時間をおいてもう一度お試しください。</p>';return}
+ try{await Api.loadSettings()}catch(e){}
  render()}
 
 /* ===== util ===== */
@@ -139,16 +145,16 @@ function render(){
   bar=S.sel?barHtml(S.optsDone?'日時選択へ進む':'オプションを選択する',false,S.optsDone?'goDate()':'openSheet()',S.optsDone?`合計 ${t0.min}分 / ${yen(t0.price)}`:`${S.sel.name} / ${S.sel.min}分`):barHtml('メニューを選択してください',true,'','');
  }
  if(k==='datetime'){
-  const t=total(),days=weekDays(),now=new Date(),nm=now.getHours()*60+now.getMinutes(),o=toMin(CONFIG.open),c=toMin(CONFIG.close),f=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const t=total(),days=weekDays(),now=new Date(),nm=now.getHours()*60+now.getMinutes(),o=SET.o,c=SET.c,f=d=>`${d.getMonth()+1}/${d.getDate()}`;
   h+=`<h2>日時を選択</h2><p class="sub">所要時間 ${t.min}分で表示しています。○の時間をお選びください。</p>
   <div class="row wkn"><button class="back" ${S.wk<=0?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk-1)">‹ 前の週へ</button><span class="mute">${f(days[0])}〜${f(days[6])}</span><button class="back" ${S.wk>=CONFIG.weeks-1?'disabled style="opacity:.3"':''} onclick="setWeek(S.wk+1)">次の週へ ›</button></div>
   <table class="wk"><thead><tr><th></th>${days.map(d=>`<th class="${d.getDay()===0?'su':d.getDay()===6?'sa':''}">${d.getDate()}<br><span>${WD[d.getDay()]}</span></th>`).join('')}</tr></thead><tbody>`;
   for(let m=o;m<c;m+=CONFIG.step){
-   h+=`<tr><th class="tm ${m%60?'q':''}">${fmt(m)}</th>`+days.map(d=>{const s=dstr(d);
-    if(CONFIG.closedWeekdays.includes(d.getDay()))return `<td class="cl"></td>`;
-    const ok=m+t.min<=c&&!(S.bm[s]||[]).some(b=>m<b.end&&m+t.min>b.start)&&!(s===dstr(now)&&m<nm+30);
+   h+=`<tr><th class="tm ${m%60?'q':''}">${fmt(m)}</th>`+days.map(d=>{const s=dstr(d),hr=dayHours(d);
+    if(!hr)return `<td class="cl"></td>`;
+    const ok=m>=hr.o&&m+t.min<=hr.c&&!(S.bm[s]||[]).some(b=>m<b.end&&m+t.min>b.start)&&!(s===dstr(now)&&m<nm+30);
     return ok?`<td class="${S.date===s&&S.time===m?'sel':''}"><button onclick="pickSlot('${s}',${m})" aria-label="${s} ${fmt(m)}">○</button></td>`:`<td class="x">×</td>`}).join('')+`</tr>`}
-  h+=`</tbody></table><p class="mute" style="margin-top:12px">× は予約済み、または施術が最後まで入らない時間です。斜線は休業日です。</p>`;
+  h+=`</tbody></table><p class="mute" style="margin-top:12px">× は予約済み、または施術が最後まで入らない時間です。斜線はお休みの日です。</p>`;
   bar=barHtml('次へ：お客様情報',S.time==null,'go(3)',S.time!=null?`${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}`:'日時を選択してください');
  }
  if(k==='info'){
