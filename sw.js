@@ -1,5 +1,5 @@
 // limoo 管理 Service Worker：画面は「ネット優先・失敗したら保存分」で、更新が反映されやすく、圏外でも開ける
-const CACHE = 'limoo-admin-v29';
+const CACHE = 'limoo-admin-v30';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './config.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

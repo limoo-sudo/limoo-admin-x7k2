@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
-<script>/* LINE(LIFF)から開かれたときは、管理画面ではなく、お客様用のページ（予約・予約の確認・連携）へ移動 */
-(function(){try{var s=new URLSearchParams(location.search).get('liff.state');if(s){location.replace(location.pathname.replace(/[^/]*$/,'')+s.replace(/^\//,''));}}catch(e){}})();</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>limoo 管理</title>
 <meta name="robots" content="noindex,nofollow">
@@ -468,6 +467,25 @@ async function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m
  const g=D[s.k][s.g],r=s.i>=0?await SB.from('menu_items').update({name:n,price:p,minutes:m,description:$('ed').value.trim()||null}).eq('id',g.items[s.i][3]):await SB.from('menu_items').insert({kind:s.k==='cat'?'menu':'option',grp:g.n,name:n,price:p,minutes:m,sort:Math.floor(Date.now()/1000),description:$('ed').value.trim()||null});
  if(r.error)return $('fe').textContent='保存できませんでした';await refresh();cl()}
 async function delI(){const s=S.sheet,r=await SB.from('menu_items').update({active:false}).eq('id',D[s.k][s.g].items[s.i][3]);if(r.error){alert('削除できませんでした');return}await refresh();cl()}
-boot();
+/* LINEからの入口では、URLを変更する前にLIFFの初期化を完了する。 */
+async function startLimoo(){
+ const q=new URLSearchParams(location.search),state=q.get('liff.state');
+ const entry=state!==null||q.has('liffClientId')||q.has('liffRedirectUri')||(q.has('code')&&q.has('state'))||/(?:^|[&#])access_token=/.test(location.hash);
+ if(!entry){boot();return}
+ const app=document.getElementById('app');
+ const showError=()=>{app.innerHTML='<div class="lg"><div class="logo">limoo</div><p style="margin-top:24px">LINE連携を開始できませんでした。</p><p class="mute">この画面を閉じて、もう一度予約リンクを開いてください。</p><a class="chip" href="reserve.html">通常の予約画面を開く</a></div>'};
+ app.innerHTML='<p class="mute" style="text-align:center;padding:30vh 20px 0">LINE連携を準備しています…</p>';
+ let target;
+ try{
+  const base=new URL('./',location.href);target=new URL((state||'/reserve.html').replace(/^\//,''),base);
+  if(target.origin!==base.origin||!['reserve.html','mine.html','link.html'].some(p=>target.pathname===base.pathname+p))throw new Error('Invalid LIFF destination');
+  if(typeof LIFF_ID==='undefined'||!LIFF_ID)throw new Error('Missing LIFF ID');
+  await new Promise((resolve,reject)=>{const sdk=document.createElement('script');sdk.src='https://static.line-scdn.net/liff/edge/2/sdk.js';sdk.onload=resolve;sdk.onerror=reject;document.head.appendChild(sdk)});
+  await liff.init({liffId:LIFF_ID});
+  // SDKによる1次→2次リダイレクトを優先し、完了後だけ移動する。
+  location.replace(target.href);
+ }catch(e){showError()}
+}
+startLimoo();
 if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js')}catch(e){}});
 </script></body></html>
