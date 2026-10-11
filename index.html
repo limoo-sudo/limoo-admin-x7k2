@@ -88,7 +88,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="config.js"></script></head><body><div id="app"></div><div id="sheet"></div>
+<script src="config.js"></script>
+<script src="forms.js"></script></head><body><div id="app"></div><div id="sheet"></div>
 <script>
 /* ===== データ：Supabase（bookings / customers / menu_items）。メモリ上の D に読み込んで描画 ===== */
 const CFG={open:540,close:1200}; // 営業時間の最小〜最大（設定から自動計算）
@@ -111,7 +112,7 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m,t,st,cd,cu,kt,py]=await Promise.all([
+ const[b,m,t,st,cd,cu,kt,py,fr]=await Promise.all([
   SB.from('bookings').select('id,customer_id,menu,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
@@ -119,14 +120,15 @@ async function loadAll(){
   SB.from('closed_dates').select('date,note').order('date'),
   SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000),
   SB.from('kartes').select('booking_id,data,talk,next_topic,condition,photos').limit(10000),
-  SB.from('payments').select('booking_id,subtotal,discounts,goods,total,method,memo,paid_at').limit(20000)]);
- if(b.error||m.error||t.error||st.error||cd.error||cu.error||kt.error||py.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+  SB.from('payments').select('booking_id,subtotal,discounts,goods,total,method,memo,paid_at').limit(20000),
+  SB.from('form_responses').select('id,customer_id,template,created_at').order('created_at',{ascending:false}).limit(5000)]);
+ if(b.error||m.error||t.error||st.error||cd.error||cu.error||kt.error||py.error||fr.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,menu:r.menu||'',price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
  D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false,pays:st.data.pay_methods||['現金','クレジット','IC','PayPay','その他バーコード決済'],photos:st.data.cat_photos||{},nr:st.data.notice_rules||'',nb:st.data.notice_before||'',rt:st.data.remind_title||'',ao:st.data.after_on,at:st.data.after_text||'',aiv:st.data.after_iv||{ext:'1 month',perm:'6 weeks',brow:'2 months'}};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
- D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));D.pay=Object.fromEntries(py.data.map(r=>[r.booking_id,r]));
+ D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));D.pay=Object.fromEntries(py.data.map(r=>[r.booking_id,r]));D.fr=fr.data;
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
@@ -326,6 +328,29 @@ function afterNext(date,t,iv){const lines=afterKinds(t).map(k=>{const p=ivP(iv[k
 function afterMsg(date,t){return (D.set.at||'').replace('{次回}',afterNext(date,t,D.set.aiv||{})).replace(/\n{3,}/g,'\n\n').trim()}
 async function saveAfter(){const iv={};Object.keys(AK).forEach(k=>{iv[k]=`${$('an-'+k).value} ${$('au-'+k).value}`});
  const r=await SB.from('salon_settings').update({after_on:$('aon').checked,after_text:$('atx').value,after_iv:iv}).eq('id',1);if(r.error){$('ae').textContent='保存できませんでした';return}await refresh();alert('お礼メッセージを保存しました')}
+/* ===== カウンセリングシート・同意書 ===== */
+const FSHORT={cs_ext:'マツエク',cs_brow:'眉毛（アイブロウ）',cs_perm:'まつ毛パーマ'};
+const ftitle=id=>(typeof FORMS!=='undefined'&&(FORMS.find(f=>f.id===id)||{}).title)||id;
+function formBox(c){if(typeof FORMS==='undefined')return'';const L=(D.fr||[]).filter(r=>c.ids.includes(r.customer_id));
+ let h=`<div class="grp">カウンセリング・同意書</div>`+(L.length?L.map(r=>`<button class="it" onclick="op({t:'fv',id:'${r.id}'})"><span>${esc(ftitle(r.template))}<div class="mute">${new Date(r.created_at).toLocaleDateString('ja-JP')}</div></span><span class="mute">›</span></button>`).join(''):`<p class="mute">まだ記入されたものはありません</p>`);
+ if(S.fq&&S.fq.k===c.k)h+=`<div style="text-align:center;margin:14px 0"><div style="margin-bottom:8px">${esc(ftitle(S.fq.tpl))}</div><div id="fqr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（30分間有効・1回のみ）</p><a class="chip" href="${S.fq.url}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">この端末で記入する</a> <button class="chip" onclick="S.fq=null;render()">閉じる</button></div>`;
+ else h+=`<div class="mute" style="margin:12px 0 6px">メニューに合った用紙を選ぶと、QRが出ます</div><div class="chips">${FORMS.map(f=>`<button class="cp" onclick="mkForm(decodeURIComponent('${encodeURIComponent(c.k)}'),'${f.id}')">${FSHORT[f.id]||esc(f.title)}</button>`).join('')}</div>`;
+ return h}
+function formQuick(b){if(typeof FORMS==='undefined'||b.status!=='ok')return'';const ids=[...new Set(guessKinds(b).map(x=>({ext:'cs_ext',lower:'cs_ext',perm:'cs_perm',brow:'cs_brow'})[x]).filter(Boolean))];if(!ids.length)return'';
+ return `<div class="mute" style="margin:16px 0 6px">カウンセリング・同意書を出す</div><div class="chips">${ids.map(id=>`<button class="cp" onclick="fmFromBk('${b.id}','${id}')">${FSHORT[id]}</button>`).join('')}</div>`}
+async function fmFromBk(bid,tpl){const b=D.bk.find(x=>x.id===bid),g=b&&custs().find(x=>x.ids.includes(b.cid));if(!g)return;S.sheet={t:'cu',k:g.k};await mkForm(g.k,tpl)}
+async function mkForm(k,tpl){const ids=custs().find(x=>x.k===k).ids,r=await SB.from('form_tokens').insert({template:tpl,customer_ids:ids}).select('token').single();
+ if(r.error||!r.data){alert('QRを作れませんでした');return}const base=location.href.replace(/[^/]*([?#].*)?$/,'');S.fq={k,tpl,url:`${base}form.html?t=${r.data.token||r.data.id}`};render()}
+async function fvLoad(id){const r=await SB.from('form_responses').select('*').eq('id',id).single();S.fvd=r.data||{id,err:1};render()}
+function fvVal(A,f){const w=o=>A[f.k+'__'+o]?`（${A[f.k+'__'+o]}）`:'';
+ if(f.type==='one')return A[f.k]?A[f.k]+w(A[f.k]):'';if(f.type==='multi')return (A[f.k]||[]).map(o=>o+w(o)).join('、');
+ if(f.type==='grid')return f.rows.map(([r],i)=>A[f.k+'.'+i]?`${r}：${A[f.k+'.'+i]}`:'').filter(Boolean).join('<br>');
+ if(f.type==='agree')return (A[f.k]||[]).length>=f.items.length?'すべて確認・同意済み':((A[f.k]||[]).length?'一部のみ':'');return A[f.k]||''}
+function fvHtml(r){if(r.err)return `<h3>読み込めませんでした</h3>`;const t=FORMS.find(f=>f.id===r.template)||{sections:[]},A=r.answers||{};let h=`<h3>${esc(t.title||r.template)}</h3><p class="mute" style="margin:0">${new Date(r.created_at).toLocaleString('ja-JP')}</p>`;
+ const ps=t.sections.filter(s=>s.p||s.sub).map(s=>s.t);if(ps.length)h+=`<div class="tip"><b>説明の確認</b>${esc(ps.join('・'))} を確認のうえ同意</div>`;
+ t.sections.forEach(s=>{const rows=(s.f||[]).filter(f=>f.type!=='note').map(f=>{const v=fvVal(A,f);return v?`<div class="kv"><span>${esc(f.l&&!f.l.startsWith('（')?f.l:s.t)}</span><span>${f.type==='grid'?v:esc(v)}</span></div>`:''}).join('');if(rows)h+=`<div class="grp">${esc(s.t)}</div>`+rows});
+ if(r.signature)h+=`<div class="grp">ご署名</div><img src="${r.signature}" alt="署名" style="width:100%;background:#fff;border-radius:12px;border:1px solid var(--line)">`;
+ const g=custs().find(x=>x.ids.includes(r.customer_id));return h+`<div class="sp"></div>`+(g?`<button class="btn o" onclick="S.fvd=null;op({t:'cu',k:decodeURIComponent('${encodeURIComponent(g.k)}')})">お客様の詳細に戻る</button>`:`<button class="btn o" onclick="cl()">閉じる</button>`)}
 async function mkQR(k){if(typeof LIFF_ID==='undefined'||!LIFF_ID||String(LIFF_ID).startsWith('YOUR')){alert('LINEの設定（LIFF）がまだ完了していません');return}
  const ids=custs().find(x=>x.k===k).ids,r=await SB.from('line_link_tokens').insert({customer_ids:ids}).select('token').single();
  if(r.error||!r.data){alert('QRを作れませんでした');return}S.qr={k,url:`https://liff.line.me/${LIFF_ID}/link.html?t=${r.data.token||r.data.id}`};render()}
@@ -398,12 +423,12 @@ async function addCD(){const d=$('cdD').value,n=$('cdN').value.trim();if(!d){$('
  const r=await SB.from('closed_dates').insert({date:d,note:n||null});if(r.error){$('ce').textContent=r.error.code==='23505'?'すでに登録されています':'追加できませんでした';return}await refresh()}
 async function delCD(d){if(!confirm('この臨時休業日を削除しますか？'))return;const r=await SB.from('closed_dates').delete().eq('date',d);if(r.error){alert('削除できませんでした');return}await refresh()}
 function op(s){if(s.t==='f')S.fc=null;S.sheet=s;render()}
-function cl(){S.sheet=null;S.qr=null;S.kf=null;S.pf=null;render()}
+function cl(){S.sheet=null;S.qr=null;S.kf=null;S.pf=null;S.fq=null;S.fvd=null;render()}
 function sheet(){
  const s=S.sheet,E=$('sheet');if(!s){E.innerHTML='';return}
  let h='';
  if(s.t==='bk'){const b=D.bk.find(x=>x.id===s.id);
-  h=`<h3>${esc(b.name)} 様</h3><div class="kv"><span>日時</span><span>${b.date.replace(/-/g,'/')} ${fmt(b.start)}〜${fmt(b.start+b.min)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div><div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div><div class="kv"><span>電話</span><span>${esc(b.tel||'-')}</span></div><div class="kv"><span>備考</span><span>${esc(b.memo||'-')}</span></div>${ktBox(b)}${payBox(b)}<div class="sp"></div>`+
+  h=`<h3>${esc(b.name)} 様</h3><div class="kv"><span>日時</span><span>${b.date.replace(/-/g,'/')} ${fmt(b.start)}〜${fmt(b.start+b.min)}</span></div><div class="kv"><span>メニュー</span><span>${esc(b.item)}</span></div><div class="kv"><span>施術時間</span><span>${b.min}分</span></div><div class="kv"><span>料金</span><span>${yen(b.price)}</span></div><div class="kv"><span>電話</span><span>${esc(b.tel||'-')}</span></div><div class="kv"><span>備考</span><span>${esc(b.memo||'-')}</span></div>${ktBox(b)}${payBox(b)}${formQuick(b)}<div class="sp"></div>`+
   (b.status==='ok'?`<button class="btn" onclick="op({t:'f',id:'${b.id}'})">変更する</button><div class="sp"></div>${s.c?`<button class="btn d" onclick="cancelB('${b.id}')">本当にキャンセルする</button>`:`<button class="btn d" onclick="S.sheet.c=1;render()">予約をキャンセル</button>`}<div class="sp"></div>`:`<p class="mute">キャンセル済みです</p>`)+`<button class="btn o" onclick="cl()">閉じる</button>`;
  }
  if(s.t==='f'){const b=s.id?D.bk.find(x=>x.id===s.id):{date:S.date,start:s.start||600,min:60,name:(s.cust||{}).name||'',tel:(s.cust||{}).tel||'',item:'',price:0,memo:''};
@@ -418,6 +443,7 @@ function sheet(){
 
  if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
   h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`${isM?catPhotoHtml(g.n):''}<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+ if(s.t==='fv'){if(!S.fvd||S.fvd.id!==s.id){h='<p class="mute" style="text-align:center;padding:30px 0">読み込み中…</p>';if(!S.fvl||S.fvl!==s.id){S.fvl=s.id;fvLoad(s.id)}}else h=fvHtml(S.fvd)}
  if(s.t==='pay'){const b=D.bk.find(x=>x.id===s.id);if(!b){cl();return}
   if(!S.pf||S.pf.id!==b.id){const p=D.pay[b.id];S.pf=p?{id:b.id,sub:p.subtotal,ds:JSON.parse(JSON.stringify(p.discounts||[])),g:JSON.parse(JSON.stringify(p.goods||[])),m:p.method||'',memo:p.memo||''}:{id:b.id,sub:b.price,ds:[],g:[],m:D.set.pays[0]||'',memo:''}}
   const f=S.pf;
@@ -452,7 +478,7 @@ function sheet(){
  if(s.t==='cu'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
   const hist=[...c.L].sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<div class="kv"><span>${b.date.replace(/-/g,'/')}</span><span>${esc(b.item)}<br>${b.status==='ok'?yen(b.price):'キャンセル'}${D.kt[b.id]?'<br><span class="mute">'+esc(ktSum(D.kt[b.id]))+'</span>':''}</span></div>`).join('');
   h=`<h3>${esc(c.name)} 様</h3><div class="kv"><span>来店回数</span><span>${c.past.length}回</span></div><div class="kv"><span>累計金額</span><span>${yen(c.total)}</span></div><div class="kv"><span>次回予約</span><span>${c.next?c.next.date.replace(/-/g,'/')+' '+fmt(c.next.start):'なし'}</span></div>
-  <div class="kv"><span>LINE</span><span>${c.linked?'連携済み':'未連携'}</span></div>${c.linked?'':(S.qr&&S.qr.k===c.k?`<div style="text-align:center;margin:12px 0"><div id="qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（10分間有効）</p></div>`:`<button class="chip" style="margin:10px 0" onclick="mkQR(decodeURIComponent('${encodeURIComponent(c.k)}'))">LINE連携用のQRを表示</button>`)}<label>お名前</label><input id="cnm" value="${esc(c.name)}"><label>フリガナ</label><input id="ckn" value="${esc(c.kana||'')}" placeholder="やまだ はなこ"><label>電話番号</label><input id="ctl" type="tel" inputmode="tel" value="${esc(c.tel||'')}"><label>メールアドレス</label><input id="cem" type="email" value="${esc(c.email||'')}"><label>メモ</label><textarea id="cm" rows="4" placeholder="職業、趣味、好きなこと、気をつけることなど">${esc(c.memo||'')}</textarea><div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
+  <div class="kv"><span>LINE</span><span>${c.linked?'連携済み':'未連携'}</span></div>${c.linked?'':(S.qr&&S.qr.k===c.k?`<div style="text-align:center;margin:12px 0"><div id="qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（10分間有効）</p></div>`:`<button class="chip" style="margin:10px 0" onclick="mkQR(decodeURIComponent('${encodeURIComponent(c.k)}'))">LINE連携用のQRを表示</button>`)}<label>お名前</label><input id="cnm" value="${esc(c.name)}"><label>フリガナ</label><input id="ckn" value="${esc(c.kana||'')}" placeholder="やまだ はなこ"><label>電話番号</label><input id="ctl" type="tel" inputmode="tel" value="${esc(c.tel||'')}"><label>メールアドレス</label><input id="cem" type="email" value="${esc(c.email||'')}"><label>メモ</label><textarea id="cm" rows="4" placeholder="職業、趣味、好きなこと、気をつけることなど">${esc(c.memo||'')}</textarea>${formBox(c)}<div class="grp">予約・来店履歴</div>${hist}<div class="sp"></div>
   <div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveCu(decodeURIComponent('${encodeURIComponent(c.k)}'))">保存</button><div class="sp"></div>
   <button class="btn o" onclick="op({t:'f',cust:{name:decodeURIComponent('${encodeURIComponent(c.name)}'),tel:decodeURIComponent('${encodeURIComponent(c.tel||'')}')}})">この方の予約を追加</button><div class="sp"></div><button class="btn o" onclick="op({t:'mg',k:decodeURIComponent('${encodeURIComponent(c.k)}')})">別のお客様とまとめる</button><div class="sp"></div><button class="btn o" onclick="hideCu(decodeURIComponent('${encodeURIComponent(c.k)}'),${!c.hidden})">${c.hidden?'一覧に表示する':'一覧から非表示にする'}</button><p class="mute" style="margin:6px 0 0">非表示にしても、予約や履歴は消えません。次の予約が入ると、自動で一覧に戻ります。</p><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`;
  }
@@ -461,6 +487,7 @@ function sheet(){
  {const sh1=E.querySelector&&E.querySelector('.sh');if(sh1&&sc0)sh1.scrollTop=sc0}
  if(s.t==='kt'&&S.kf&&S.kf.photos.some(p=>!S.urls[p.path]&&!S.ut[p.path]))ktUrls().then(render);
  if(s.t==='f'&&S.fc&&!S.fc.sel)fcSug();
+ if(S.fq&&s.t==='cu'&&s.k===S.fq.k&&window.QRCode){const q=$('fqr');if(q&&q.appendChild&&!q.firstChild){new QRCode(q,{text:S.fq.url,width:200,height:200});if(q.scrollIntoView)q.scrollIntoView({block:'center'})}}
  if(s.t==='mg')mgList();
  if(S.qr&&s.t==='cu'&&s.k===S.qr.k&&window.QRCode&&$('qr'))new QRCode($('qr'),{text:S.qr.url,width:200,height:200});
 }
