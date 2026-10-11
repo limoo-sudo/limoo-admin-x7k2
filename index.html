@@ -185,7 +185,7 @@ function renderApp(){
    :`<div class="grp" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(g.n)}</span><button class="chip" onclick="op({t:'gr',k:'${k}',g:${gi}})">編集</button></div>`+g.items.map((it,i)=>`<button class="it" onclick="op({t:'it',k:'${k}',g:${gi},i:${i}})"><span style="flex:1;min-width:0">${esc(it[0])}${it[4]?`<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it[4])}</div>`:''}</span><span class="mute" style="white-space:nowrap;text-align:right">${yen(it[1])}<br>${it[2]}分</span></button>`).join('')+`<button class="chip" onclick="op({t:'it',k:'${k}',g:${gi},i:-1})">＋ 項目を追加</button>`).join('');
   h+=sec('cat',D.cat)+`<h3 style="font-weight:300;margin:34px 0 0">オプション</h3>`+sec('opts',D.opts);
  }
- A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='rp'?'on':''}" onclick="S.tab='rp';render()">売上</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button><button class="${S.tab==='st'?'on':''}" onclick="S.tab='st';render()">設定</button></div></div></div>`;
+ A.innerHTML=h+`<div class="bar"><div>${S.tab==='bk'?`<div style="display:flex;gap:10px"><button class="btn" onclick="op({t:'f'})">＋ 予約</button><button class="btn o" onclick="op({t:'pf'})">＋ 予定</button></div>`:''}<div class="tabs"><button class="${S.tab==='bk'?'on':''}" onclick="S.tab='bk';render()">予約</button><button class="${S.tab==='cu'?'on':''}" onclick="S.tab='cu';render()">お客様</button><button class="${S.tab==='rp'?'on':''}" onclick="S.tab='rp';render()">売上</button><button class="${S.tab==='mn'?'on':''}" onclick="S.tab='mn';render()">メニュー</button><button class="${S.tab==='st'?'on':''}" onclick="S.tab='st';S.stv=null;render()">設定</button></div></div></div>`;
  sheet();if(S.tab==='cu')cuList();
 }
 let H0=480,H1=1260;const PH=88,WPH=40;
@@ -381,7 +381,7 @@ function monGrid(first){const f=new Date(first+'T00:00:00'),start=addD(first,-f.
   h+=`<button class="mc ${cls}" onclick="S.date='${s}';S.view='d';render()"><b>${dd.getDate()}</b>${n?`<span class="n">${n}件</span>`:''}</button>`}
  return h+`</div><p class="mute" style="text-align:center;margin-top:12px">日付をタップすると、その日の予約表を開きます</p>`}
 /* ===== 設定：営業時間・定休日・臨時休業日 ===== */
-function setView(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.hours)),closedW:[...D.set.closedW]});
+function setViewAll(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.hours)),closedW:[...D.set.closedW]});
  const tm=(v,on)=>{let o='';for(let m=360;m<=1380;m+=15)o+=`<option ${fmt(m)===v?'selected':''}>${fmt(m)}</option>`;return `<select onchange="${on}" style="padding:8px">${o}</select>`};
  let h=`<h3 style="font-weight:300;margin:18px 0 4px">営業時間</h3><p class="mute">お客様の予約画面の受付時間に反映されます</p>
  <div class="note2"><div class="mute" style="margin-bottom:6px">一括設定</div><div class="hr">${tm(S.ao||'09:00',"S.ao=this.value")}<span>〜</span>${tm(S.ac||'20:00',"S.ac=this.value")}<button class="chip" onclick="applyAll()">全曜日に適用</button></div></div>`;
@@ -409,6 +409,20 @@ function setView(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.ho
  <div class="hr"><input id="cdD" type="date" style="flex:1"><input id="cdN" placeholder="メモ（任意）" style="flex:1"><button class="chip" onclick="addCD()">追加</button></div><div id="ce" class="err"></div>`+
  (up.length?up.map(r=>`<div class="kv"><span>${r.date.replace(/-/g,'/')}（${WD[new Date(r.date+'T00:00:00').getDay()]}）</span><span>${esc(r.note||'')}　<button class="chip" onclick="delCD('${r.date}')">削除</button></span></div>`).join(''):`<p class="mute">予定されている臨時休業日はありません</p>`);
  return h}
+/* ===== 設定：項目ごとに分けて表示 ===== */
+const ST_ORDER=['営業時間','臨時休業日','予約受付のルール','お客様への案内','会計後のお礼メッセージ','支払い方法'];
+function hoursSum(){const F=D.set,o=[1,2,3,4,5,6,0],m=new Map();o.forEach(d=>{if(F.closedW.includes(d))return;const x=F.hours[d]||{},v=`${String(x.open).replace(/^0/,'')}〜${String(x.close).replace(/^0/,'')}`;if(!m.has(v))m.set(v,[]);m.get(v).push(d)});
+ const runs=ds=>{const r=[];ds.forEach(d=>{const i=o.indexOf(d),l=r[r.length-1];if(l&&o.indexOf(l[l.length-1])===i-1)l.push(d);else r.push([d])});return r.map(x=>x.length>2?WD[x[0]]+'〜'+WD[x[x.length-1]]:x.map(d=>WD[d]).join('・')).join('・')};
+ return [...m].map(([v,ds])=>`${runs(ds)} ${v}`).join('、')+(F.closedW.length?`／定休日 ${o.filter(d=>F.closedW.includes(d)).map(d=>WD[d]).join('・')}`:'')}
+function stSum(t){const s=D.set;if(t==='営業時間')return hoursSum();
+ if(t==='臨時休業日'){const u=(s.closedList||[]).filter(r=>r.date>=TODAY);return u.length?`${u.length}日（${u.slice(0,2).map(r=>r.date.slice(5).replace('-','/')).join('、')}${u.length>2?' ほか':''}）`:'予定なし'}
+ if(t==='予約受付のルール')return `${s.maxDays}日先まで／当日は${s.sameday?(s.lead>=60?s.lead/60+'時間':s.lead+'分')+'前まで':'受け付けない'}${s.tax?'／税込表示':''}`;
+ if(t==='お客様への案内')return '予約時の注意事項・前日のリマインド・ご来店前のご案内';
+ if(t==='会計後のお礼メッセージ')return s.ao!==false?'送る':'送らない';if(t==='支払い方法')return (s.pays||[]).join('・');return''}
+function setView(){const all=setViewAll(),m={};all.split(/(?=<h3 style="font-weight:300;margin:)/).forEach(x=>{const t=(x.match(/<h3[^>]*>([^<]*)<\/h3>/)||[])[1];if(t)m[t]=x});
+ if(S.stv&&m[S.stv])return `<button class="chip" style="margin-top:14px" onclick="S.stv=null;render();scrollTo(0,0)">‹ 設定の一覧に戻る</button>`+m[S.stv].replace(/margin:(34|18)px 0 4px/,'margin:16px 0 4px');
+ const keys=[...ST_ORDER.filter(t=>m[t]),...Object.keys(m).filter(t=>!ST_ORDER.includes(t))];
+ return `<h3 style="font-weight:300;margin:18px 0 10px">設定</h3>`+keys.map(t=>`<button class="it" onclick="S.stv='${t}';render();scrollTo(0,0)"><span style="flex:1;min-width:0">${t}<div class="mute" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(stSum(t))}</div></span><span class="mute" style="font-size:20px">›</span></button>`).join('')}
 function tgW(d,on){const F=S.sf;F.closedW=F.closedW.filter(x=>x!==d);if(on)F.closedW.push(d);if(!F.hours[d])F.hours[d]={open:'09:00',close:'20:00'};render()}
 function applyAll(){const o=S.ao||'09:00',c=S.ac||'20:00';for(let d=0;d<7;d++)S.sf.hours[d]={open:o,close:c};render()}
 async function saveSet(){const F=S.sf,bad=[0,1,2,3,4,5,6].filter(d=>!F.closedW.includes(d)&&toM(F.hours[d].close)<=toM(F.hours[d].open));
