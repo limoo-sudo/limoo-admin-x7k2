@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
-
+<script>/* LINE(LIFF)から開かれたときは、管理画面ではなく、お客様用のページ（予約・予約の確認・連携）へ移動 */
+(function(){try{var s=new URLSearchParams(location.search).get('liff.state');if(s){location.replace(location.pathname.replace(/[^/]*$/,'')+s.replace(/^\//,''));}}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>limoo 管理</title>
 <meta name="robots" content="noindex,nofollow">
@@ -77,6 +78,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;flex:none;background:var(--card)}.qty button{border:0;background:none;width:40px;height:46px;font-size:18px;color:var(--fg);cursor:pointer}.qty span{min-width:34px;text-align:center;font-size:14px}
 .dx{border:0;background:none;font-size:20px;color:var(--mute);width:36px;height:36px;flex:none;cursor:pointer}
 .ptot{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.ptot .r{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);padding:2px 0}.ptot .t{display:flex;justify-content:space-between;font-size:18px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.cph{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cph .pt img{aspect-ratio:1/1}.cpo{position:absolute;left:4px;bottom:4px;display:flex;gap:4px}.cpo button{position:static;width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:11px;cursor:pointer}
 .ktc{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--sel);border-radius:14px;padding:14px 16px;margin-top:16px;font:inherit;color:var(--fg);cursor:pointer}
 .ktl{flex:1;min-width:0}.kth{font-size:16px;display:flex;align-items:center;gap:8px}.ktb{font-size:11px;border-radius:10px;padding:2px 9px;background:var(--line);color:var(--mute)}.ktb.on{background:var(--sel);color:var(--selfg)}
 .kts{font-size:12px;color:var(--mute);margin-top:4px;line-height:1.6}.ktp{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:13px;line-height:1.6}.ktp span{display:block;font-size:11px;color:var(--mute)}.ktx{font-size:24px;color:var(--mute)}
@@ -113,7 +115,7 @@ async function loadAll(){
   SB.from('bookings').select('id,customer_id,menu,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
-  SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,pay_methods').eq('id',1).single(),
+  SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,pay_methods,cat_photos,notice_rules,notice_before').eq('id',1).single(),
   SB.from('closed_dates').select('date,note').order('date'),
   SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000),
   SB.from('kartes').select('booking_id,data,talk,next_topic,condition,photos').limit(10000),
@@ -122,7 +124,7 @@ async function loadAll(){
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,menu:r.menu||'',price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
- D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false,pays:st.data.pay_methods||['現金','クレジット','IC','PayPay','その他バーコード決済']};
+ D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false,pays:st.data.pay_methods||['現金','クレジット','IC','PayPay','その他バーコード決済'],photos:st.data.cat_photos||{},nr:st.data.notice_rules||'',nb:st.data.notice_before||''};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
  D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));D.pay=Object.fromEntries(py.data.map(r=>[r.booking_id,r]));
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
@@ -212,7 +214,7 @@ async function saveGr(){const s=S.sheet,g=D[s.k][s.g],old=g.n,nw=$('gn').value.t
  if(!nw)return er('カテゴリー名を入力してください');if(nw!==old&&D[s.k].some(x=>x.n===nw))return er('同じ名前のカテゴリーがあります');
  if(nw!==old){const r=await SB.from('menu_items').update({grp:nw}).eq('kind',kind).eq('grp',old);if(r.error)return er('保存できませんでした')}
  const map={...(D.set.optMap||{})};if(kind==='menu'){delete map[old];const v=$('go').value;if(v)map[nw]=v}else{for(const k in map)if(map[k]===old)map[k]=nw}
- const r2=await SB.from('salon_settings').update({opt_map:map}).eq('id',1);if(r2.error)return er('オプションの設定を保存できませんでした');await refresh();cl()}
+ const r2=await SB.from('salon_settings').update({opt_map:map,cat_photos:(()=>{const cp={...(D.set.photos||{})};if(kind==='menu'&&nw!==old&&cp[old]){cp[nw]=cp[old];delete cp[old]}return cp})()}).eq('id',1);if(r2.error)return er('オプションの設定を保存できませんでした');await refresh();cl()}
 function mgList(){const s=S.sheet,q=toH(($('mq').value||'').replace(/[\s-]/g,'')).toLowerCase();
  const L=custs().filter(c=>c.k!==s.k&&(!q||(c.name.replace(/\s/g,'')+c.sk+c.tel.replace(/\D/g,'')).toLowerCase().includes(q))).sort((a,b)=>a.sk.localeCompare(b.sk,'ja')).slice(0,30);
  $('ml').innerHTML=L.map(c=>`<button class="it" onclick="doMerge(decodeURIComponent('${encodeURIComponent(c.k)}'))"><span>${esc(c.name)} 様<div class="mute">${esc(c.tel||'電話番号なし')}${c.linked?'　LINE連携済み':''}${c.last?'　最終来店 '+c.last.date.replace(/-/g,'/'):''}</div></span></button>`).join('')||'<p class="mute">見つかりません</p>'}
@@ -306,6 +308,15 @@ function rpView(){const v=S.rv||'m',d=new Date(S.date+'T00:00:00');let a,b,title
  if(un.length)h+=`<div class="grp">未会計（${un.length}件）</div>`+un.sort((x,y)=>(x.date+fmt(x.start)).localeCompare(y.date+fmt(y.start))).map(x=>`<button class="it" onclick="op({t:'pay',id:'${x.id}'})"><span>${x.date.slice(5).replace('-','/')} ${fmt(x.start)}　${esc(x.name)} 様<div class="mute">${esc(x.item)}</div></span><span class="mute">${yen(x.price)}</span></button>`).join('');
  if(!bks.length)h+=`<p class="mute" style="text-align:center;padding:30px 0">この期間の予約はありません</p>`;
  return h}
+/* ===== メニューの写真（カテゴリーごと・お客様の予約画面に表示） ===== */
+const mUrl=p=>/^(data:|blob:|https?:)/.test(p)?p:SB.storage.from('menu').getPublicUrl(p).data.publicUrl;
+const cpName=()=>D[S.sheet.k][S.sheet.g].n;
+function catPhotoHtml(n){const L=(D.set.photos||{})[n]||[];return `<label>写真（お客様の予約画面に、左から順に出ます）</label><div class="cph">${L.map((p,i)=>`<div class="pt"><img src="${mUrl(p)}" alt=""><button onclick="cpDel(${i})" aria-label="削除">×</button><div class="cpo">${i>0?`<button onclick="cpMv(${i},-1)" aria-label="前へ">◀</button>`:''}${i<L.length-1?`<button onclick="cpMv(${i},1)" aria-label="後ろへ">▶</button>`:''}</div></div>`).join('')}</div><button class="chip" style="margin-top:8px" onclick="document.getElementById('cpf').click()">＋ 写真を追加</button><input id="cpf" type="file" accept="image/*" multiple style="display:none" onchange="cpUp(this)">`}
+async function cpSave(list){const n=cpName(),cp={...(D.set.photos||{})};if(list.length)cp[n]=list;else delete cp[n];const r=await SB.from('salon_settings').update({cat_photos:cp}).eq('id',1);if(r.error){alert('保存できませんでした');return false}D.set.photos=cp;render();return true}
+async function cpUp(el){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;const add=[];for(const f of fs){try{const b=await shrink(f),p=`cat/${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`,r=await SB.storage.from('menu').upload(p,b,{contentType:'image/jpeg'});if(r.error)throw r.error;add.push(p)}catch(e){alert('写真を保存できませんでした')}}if(add.length)await cpSave([...((D.set.photos||{})[cpName()]||[]),...add])}
+function cpMv(i,d){const L=[...((D.set.photos||{})[cpName()]||[])];[L[i],L[i+d]]=[L[i+d],L[i]];cpSave(L)}
+async function cpDel(i){if(!confirm('この写真を削除しますか？'))return;const L=[...((D.set.photos||{})[cpName()]||[])],[p]=L.splice(i,1);if(!/^(data:|blob:)/.test(p))await SB.storage.from('menu').remove([p]);cpSave(L)}
+async function saveNotice(){const r=await SB.from('salon_settings').update({notice_rules:$('nr').value,notice_before:$('nb').value}).eq('id',1);if(r.error){$('ne').textContent='保存できませんでした';return}await refresh();alert('案内を保存しました')}
 async function mkQR(k){if(typeof LIFF_ID==='undefined'||!LIFF_ID||String(LIFF_ID).startsWith('YOUR')){alert('LINEの設定（LIFF）がまだ完了していません');return}
  const ids=custs().find(x=>x.k===k).ids,r=await SB.from('line_link_tokens').insert({customer_ids:ids}).select('token').single();
  if(r.error||!r.data){alert('QRを作れませんでした');return}S.qr={k,url:`https://liff.line.me/${LIFF_ID}/link.html?t=${r.data.token||r.data.id}`};render()}
@@ -343,6 +354,7 @@ function setView(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set.ho
  h+=[1,2,3,4,5,6,0].map(d=>{const c=F.closedW.includes(d),x=F.hours[d]||{open:'09:00',close:'20:00'};
   return `<div class="hr"><b style="width:22px;font-weight:400">${WD[d]}</b>${c?`<span class="mute" style="flex:1">定休日</span>`:`${tm(x.open,`S.sf.hours[${d}].open=this.value`)}<span>〜</span>${tm(x.close,`S.sf.hours[${d}].close=this.value`)}`}<label class="mute" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" style="width:20px;height:20px" ${c?'checked':''} onchange="tgW(${d},this.checked)">休み</label></div>`}).join('');
  h+=`<div id="se" class="err"></div><div class="sp"></div><button class="btn" onclick="saveSet()">営業時間を保存</button>`;
+ h+=`<h3 style="font-weight:300;margin:34px 0 4px">お客様への案内</h3><label>予約の確認画面の注意事項（お客様は「確認しました」にチェックしてから確定します）</label><textarea id="nr" rows="7">${esc(D.set.nr||'')}</textarea><label>ご来店前のご案内（予約完了の画面と、前日のLINEに出ます）</label><textarea id="nb" rows="5">${esc(D.set.nb||'')}</textarea><div id="ne" class="err"></div><div class="sp"></div><button class="btn" onclick="saveNotice()">案内を保存</button>`;
  h+=`<h3 style="font-weight:300;margin:34px 0 4px">支払い方法</h3><p class="mute">会計のときに選べる支払い方法です</p><div class="chips" style="margin-top:8px">${D.set.pays.map((m,i)=>`<span class="se">${esc(m)}<button onclick="payMDel(${i})" aria-label="削除">×</button></span>`).join('')}</div><div class="hr" style="border:0"><input id="pmN" placeholder="例）d払い" style="flex:1"><button class="chip" onclick="payMAdd()">追加</button></div>`;
  const R=S.rf||(S.rf={maxDays:D.set.maxDays,sd:D.set.sameday?String(D.set.lead):'no',tax:D.set.tax});
  const sel=(v,list,on)=>`<select onchange="${on}" style="width:auto;padding:8px">${list.map(([k,l])=>`<option value="${k}" ${String(k)===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
@@ -389,7 +401,7 @@ function sheet(){
  }
 
  if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
-  h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+  h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`${isM?catPhotoHtml(g.n):''}<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
  if(s.t==='pay'){const b=D.bk.find(x=>x.id===s.id);if(!b){cl();return}
   if(!S.pf||S.pf.id!==b.id){const p=D.pay[b.id];S.pf=p?{id:b.id,sub:p.subtotal,ds:JSON.parse(JSON.stringify(p.discounts||[])),g:JSON.parse(JSON.stringify(p.goods||[])),m:p.method||'',memo:p.memo||''}:{id:b.id,sub:b.price,ds:[],g:[],m:D.set.pays[0]||'',memo:''}}
   const f=S.pf;
@@ -467,25 +479,6 @@ async function saveI(){const s=S.sheet,n=$('en').value.trim(),p=+$('ep').value,m
  const g=D[s.k][s.g],r=s.i>=0?await SB.from('menu_items').update({name:n,price:p,minutes:m,description:$('ed').value.trim()||null}).eq('id',g.items[s.i][3]):await SB.from('menu_items').insert({kind:s.k==='cat'?'menu':'option',grp:g.n,name:n,price:p,minutes:m,sort:Math.floor(Date.now()/1000),description:$('ed').value.trim()||null});
  if(r.error)return $('fe').textContent='保存できませんでした';await refresh();cl()}
 async function delI(){const s=S.sheet,r=await SB.from('menu_items').update({active:false}).eq('id',D[s.k][s.g].items[s.i][3]);if(r.error){alert('削除できませんでした');return}await refresh();cl()}
-/* LINEからの入口では、URLを変更する前にLIFFの初期化を完了する。 */
-async function startLimoo(){
- const q=new URLSearchParams(location.search),state=q.get('liff.state');
- const entry=state!==null||q.has('liffClientId')||q.has('liffRedirectUri')||(q.has('code')&&q.has('state'))||/(?:^|[&#])access_token=/.test(location.hash);
- if(!entry){boot();return}
- const app=document.getElementById('app');
- const showError=()=>{app.innerHTML='<div class="lg"><div class="logo">limoo</div><p style="margin-top:24px">LINE連携を開始できませんでした。</p><p class="mute">この画面を閉じて、もう一度予約リンクを開いてください。</p><a class="chip" href="reserve.html">通常の予約画面を開く</a></div>'};
- app.innerHTML='<p class="mute" style="text-align:center;padding:30vh 20px 0">LINE連携を準備しています…</p>';
- let target;
- try{
-  const base=new URL('./',location.href);target=new URL((state||'/reserve.html').replace(/^\//,''),base);
-  if(target.origin!==base.origin||!['reserve.html','mine.html','link.html'].some(p=>target.pathname===base.pathname+p))throw new Error('Invalid LIFF destination');
-  if(typeof LIFF_ID==='undefined'||!LIFF_ID)throw new Error('Missing LIFF ID');
-  await new Promise((resolve,reject)=>{const sdk=document.createElement('script');sdk.src='https://static.line-scdn.net/liff/edge/2/sdk.js';sdk.onload=resolve;sdk.onerror=reject;document.head.appendChild(sdk)});
-  await liff.init({liffId:LIFF_ID});
-  // SDKによる1次→2次リダイレクトを優先し、完了後だけ移動する。
-  location.replace(target.href);
- }catch(e){showError()}
-}
-startLimoo();
+boot();
 if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js')}catch(e){}});
 </script></body></html>

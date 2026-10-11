@@ -61,6 +61,9 @@ table.wk{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed
 .wk td button{width:100%;height:100%;min-height:46px;border:0;background:none;color:var(--fg);font:inherit;font-size:20px;cursor:pointer}
 .wk td.sel{background:var(--sel)}.wk td.sel button{color:var(--selfg)}
 .wkn .back{padding:6px 0}
+.car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:16px;margin:6px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.car::-webkit-scrollbar{display:none}.car img{flex:0 0 100%;width:100%;aspect-ratio:4/3;object-fit:cover;scroll-snap-align:start;display:block}
+.dots{display:flex;justify-content:center;gap:6px;margin:0 0 12px}.dots i{width:6px;height:6px;border-radius:3px;background:var(--line)}.dots i.on{background:var(--sel)}
+.ntc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:16px;font-size:13px;line-height:1.8}.agr{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;cursor:pointer}.agr input{width:22px;height:22px;accent-color:#9FC3DA;flex:none}
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
@@ -98,9 +101,9 @@ const Api={
   const{data,error}=await SB.rpc('create_booking_v3',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:lineToken(),p_items:S.cart.map(e=>e.sel.id),p_options:[...new Set(S.cart.flatMap(e=>[...e.opts]))],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null,p_kana:c.kana||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
 let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
-Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),SB.from('closed_dates').select('date')]);
+Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,cat_photos,notice_rules,notice_before').eq('id',1).single(),SB.from('closed_dates').select('date')]);
  if(a.error||b.error)throw a.error||b.error;const hs=Object.values(a.data.hours);
- SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
+ SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,photos:a.data.cat_photos||{},nr:a.data.notice_rules||'',nb:a.data.notice_before||'',maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
 function tooSoon(s,m){const n=new Date(),today=dstr(n),nm=n.getHours()*60+n.getMinutes(),lim=new Date(n.getFullYear(),n.getMonth(),n.getDate()+(SET.maxDays??50));
  if(s>dstr(lim))return true;if(s===today&&SET.sameday===false)return true;if(s===today&&m<nm+(SET.lead??30))return true;return false}
 const TX=()=>SET.tax?'（税込）':'';
@@ -108,6 +111,11 @@ function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.cl
 const LIFF_OK=typeof LIFF_ID!=='undefined'&&LIFF_ID&&!String(LIFF_ID).startsWith('YOUR')&&!!window.liff;
 async function lineInit(force){if(!LIFF_OK)return null;try{await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){if(force||liff.isInClient()){liff.login({redirectUri:location.href});return 'redirect'}return null}return liff.getIDToken()}catch(e){return null}}
 const lineToken=()=>{try{return LIFF_OK&&liff.isLoggedIn()?liff.getIDToken():null}catch(e){return null}};
+const nl=s=>esc(s).replace(/\n/g,'<br>');
+const pUrl=p=>/^(data:|blob:|https?:)/.test(p)?p:SB.storage.from('menu').getPublicUrl(p).data.publicUrl;
+function carHtml(n){const L=(SET.photos||{})[n]||[];if(!L.length)return'';return `<div class="car" onscroll="carDot(this)">${L.map(p=>`<img src="${pUrl(p)}" alt="">`).join('')}</div>${L.length>1?`<div class="dots">${L.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}`}
+function carDot(el){const i=Math.round(el.scrollLeft/el.clientWidth),d=el.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,j)=>x.classList.toggle('on',j===i))}
+const NR_DEF="◎ご予約時間に遅れる場合は、お電話またはLINEでご連絡ください。遅れの時間によっては、施術内容やご予約の変更をお願いすることがあります。\n◎ご予約の変更は、ご予約日の前々日（23:59）まで、お客様ご自身で行えます。\n◎キャンセル、および期限後のご変更は、お電話またはLINEでご連絡ください。";
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
  if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
@@ -154,7 +162,7 @@ function render(){
   h+=`<h2>メニューを選択</h2><p class="sub">${S.cart.length?'追加するメニューのカテゴリーをお選びください':'ご希望のカテゴリーをお選びください'}</p>`+(S.cart.length?`<div class="card" style="cursor:default"><div class="mute" style="margin-bottom:6px">選択中のメニュー</div>${S.cart.map((e,i)=>{const t=eTot(e);return `<div class="row" style="padding:6px 0;border-top:1px solid var(--line)"><div style="flex:1">${esc(e.menu.name)} ${esc(e.sel.name)}${t.L.length?`<div class="mute">＋${t.L.map(o=>esc(o.name)).join('、')}</div>`:''}<div class="mute">${yen(t.price)} / ${t.min}分</div></div><button class="back" onclick="rmCart(${i})">削除</button></div>`}).join('')}</div>`:'')+MENUS.map(m=>`<button class="card" onclick="pickMenu('${m.id}')"><div class="row"><div>${m.name}${m.desc?`<div class="mute">${m.desc}</div>`:''}</div><span class="mute">›</span></div></button>`).join('');
  }
  if(k==='detail'){
-  const m=S.menu;h+=`<h2>${m.name}</h2>`;
+  const m=S.menu;h+=`<h2>${m.name}</h2>`+carHtml(m.name);
   if(m.rows&&S.pick==null){h+=`<p class="sub">${m.pick}を選択してください</p>`+m.rows.map((r,i)=>`<button class="card" onclick="S.pick=${i};render()"><div class="row"><span>${r.name}${r.desc?`<div class="mute">${esc(r.desc)}</div>`:''}</span><span class="mute">${r.min}分</span></div></button>`).join('');}
   else if(m.rows){const r=m.rows[S.pick];h+=`<button class="back" onclick="S.pick=null;S.sel=null;S.optsDone=false;render()">‹ ${m.pick}を選び直す</button>`+`<p class="sub">${r.name}（${r.min}分）— 前回来店からの期間</p>`+m.period.map((p,i)=>{const c=r.cells[i];return c?cardSel(p,c.price,c.min,{...c,name:`${r.name} ${p}`}):''}).join('');}
   else h+=`<p class="sub">メニューを選択してください</p>`+m.groups.map(g=>`<div class="grp">${g.label}</div>`+g.items.map(it=>cardSel(it.name,it.price,it.min,it)).join('')).join('');
@@ -191,14 +199,13 @@ function render(){
   <div class="kv"><span>日時</span><span>${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜${fmt(S.time+t.min)}</span></div>
   <div class="kv"><span>施術時間</span><span>${t.min}分</span></div>
   <div class="kv"><span>料金</span><span>${yen(t.price)}${S.sel.from?' 〜':''}${TX()}</span></div>
-  <div class="kv"><span>お客様名</span><span>${esc(c.name)} 様</span></div>${S.cerr?`<div class="err" style="margin-top:14px">${S.cerr}</div>`:''}<p class="mute" style="margin-top:14px;line-height:1.8">◎ご予約の変更は、ご予約日の前々日（23:59）まで、お客様ご自身で行えます。<br>◎キャンセル、および期限後のご変更は、お電話またはLINEでご連絡ください。</p>`;
-  bar=barHtml('予約を確定する',false,'confirmBook()','');
+  <div class="kv"><span>お客様名</span><span>${esc(c.name)} 様</span></div>${S.cerr?`<div class="err" style="margin-top:14px">${S.cerr}</div>`:''}<div class="ntc"><div class="mute">ご予約の前にご確認ください</div><div style="margin-top:6px">${nl(SET.nr||NR_DEF)}</div><label class="agr"><input type="checkbox" ${S.agree?'checked':''} onchange="S.agree=this.checked;render()">上記を確認しました</label></div>`;
+  bar=barHtml('予約を確定する',!S.agree,'confirmBook()',S.agree?'':'「上記を確認しました」にチェックしてください');
  }
  if(k==='done'){
   const t=total();h+=`<div style="text-align:center;padding:30px 0 6px"><div style="font-size:34px;font-weight:200">✓</div><h2>ご予約ありがとうございます</h2><p class="sub">予約番号 ${S.done.id}</p></div>
   <div class="kv"><span>日時</span><span>${S.date.replace(/-/g,'/')} ${fmt(S.time)}</span></div><div class="kv"><span>メニュー</span><span>${cartNames()}</span></div><div class="kv"><span>料金</span><span>${yen(t.price)}</span></div><div class="kv"><span>変更期限</span><span>${chg()?(d=>(d.getMonth()+1)+'/'+d.getDate()+' 23:59まで')(chgDl()):'期限後のため、お電話・LINEでご連絡ください'}</span></div>
-  <div class="grp">LINE通知プレビュー（デモ）</div><div class="line">【limoo】ご予約ありがとうございます<br>${S.date.replace(/-/g,'/')} ${fmt(S.time)}〜<br>${cartNames()} / ${yen(t.price)}${chg()?'<div class="b"><span>予約を変更する</span></div>':''}<div style="margin-top:10px;font-size:11px;opacity:.9">※ご変更は前々日までです。キャンセルや期限後のご変更は、お電話またはLINEでご連絡ください。</div></div>
-  <div class="line" style="background:#4a4a4a">【前日リマインド】明日はご予約日です<div style="margin-top:10px;font-size:11px;opacity:.9">変更・キャンセルは、お電話またはLINEでご連絡ください。</div></div>`;
+  ${SET.nb?`<div class="grp">ご来店前のご案内</div><div class="ntc" style="margin-top:0">${nl(SET.nb)}</div>`:''}`;
   bar=barHtml('最初に戻る',false,'reset()','');
  }
  const sb0=document.querySelector('.shb'),st0=sb0?sb0.scrollTop:0,sh=S.sheet&&k==='detail';
@@ -217,9 +224,9 @@ const visOpts=()=>S.menu.options.filter(o=>!hid(o));
 const blocked=o=>!S.d.o.has(o.id)&&[...S.d.o].some(i=>{const s=S.menu.options.find(x=>x.id===i);return (s.no||[]).includes(o.id)||(o.no||[]).includes(i)}); // 併用不可
 function dTot(){const L=S.menu.options.filter(o=>S.d.o.has(o.id));return {L,min:S.sel.min+L.reduce((a,o)=>a+o.min,0),price:S.sel.price+L.reduce((a,o)=>a+o.price,0)}}
 function sheetHtml(){const d=S.d,t=dTot(),ok=d.n||d.o.size>0,fr=S.sel.from?'〜':'',oth=S.cart.filter(x=>x.sel.id!==S.sel.id),ot=oth.reduce((a,e)=>{const x=eTot(e);return{min:a.min+x.min,price:a.price+x.price}},{min:0,price:0}),oh=oth.map(e=>{const x=eTot(e);return `<div class="sl"><span>${esc(e.menu.name)} ${esc(e.sel.name)}${x.L.length?' ＋オプション':''}</span><span>${yen(x.price)} / ${x.min}分</span></div>`}).join('');
- return `<div class="ov" ontouchmove="if(!event.target.closest('.shb'))event.preventDefault()" onclick="if(event.target===this)closeSheet()"><div class="sh ${S.anim?'in':''}"><div class="shh"><div><h3>追加オプションはいかがですか？</h3><p class="sub" style="margin:6px 0 10px">ご希望のオプションをお選びください。追加がない場合は『オプションなし』を選択してください。</p></div><button class="x" onclick="closeSheet()" aria-label="閉じる">×</button></div><div class="shb">`
+ return `<div class="ov" ontouchmove="if(!event.target.closest('.shb'))event.preventDefault()" onclick="if(event.target===this)closeSheet()"><div class="sh ${S.anim?'in':''}"><div class="shh"><div><h3>追加オプションはいかがですか？</h3><p class="sub" style="margin:6px 0 10px">ご希望のオプションをお選びください。追加がない場合は『オプションなし』を選択してください。</p></div><button class="x" onclick="closeSheet()" aria-label="閉じる">×</button></div><div class="shb"><button class="card ${d.n?'sel':''}" style="margin-bottom:16px" onclick="toggleNone()"><div class="row"><span>オプションなし</span><span class="chk">✓</span></div></button>`
  +visOpts().map(o=>{const b=blocked(o);return `<button class="card ${d.o.has(o.id)?'sel':''}" ${b?'disabled style="opacity:.35"':''} onclick="toggleOpt('${o.id}')"><div class="row"><div style="flex:1">${o.name}<div class="mute">＋${yen(o.price)}${o.min?'　＋'+o.min+'分':''}${b?'　※併用不可':''}</div>${o.desc?`<div class="mute" style="margin-top:2px">${esc(o.desc)}</div>`:''}</div><span class="chk">✓</span></div></button>`}).join('')
- +`<button class="card ${d.n?'sel':''}" onclick="toggleNone()"><div class="row"><span>オプションなし</span><span class="chk">✓</span></div></button></div><div class="shf">${oh}<div class="sl"><span>${S.menu.name}　${S.sel.name}</span><span>${yen(S.sel.price)}${fr} / ${S.sel.min}分</span></div>`
+ +`</div><div class="shf">${oh}<div class="sl"><span>${S.menu.name}　${S.sel.name}</span><span>${yen(S.sel.price)}${fr} / ${S.sel.min}分</span></div>`
  +t.L.map(o=>`<div class="sl"><span>＋${o.name}</span><span>${yen(o.price)} / ${o.min}分</span></div>`).join('')
  +`<div class="tot"><span>合計</span><span>${yen(t.price+ot.price)}${fr}${TX()} / ${t.min+ot.min}分</span></div><button class="btn" ${ok?'':'disabled'} onclick="proceed()">日時選択へ進む</button><button class="back" style="width:100%;text-align:center;margin-top:4px" ${ok?'':'disabled'} onclick="addMore()">＋ ほかのメニューも追加する</button></div></div></div>`}
 function openSheet(){S.d={o:new Set(S.opts),n:S.none};S.sheet=true;S.anim=true;render()}
