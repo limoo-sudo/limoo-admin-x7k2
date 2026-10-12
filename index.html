@@ -79,6 +79,9 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .dx{border:0;background:none;font-size:20px;color:var(--mute);width:36px;height:36px;flex:none;cursor:pointer}
 .ptot{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.ptot .r{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);padding:2px 0}.ptot .t{display:flex;justify-content:space-between;font-size:18px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
 .cph{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cph .pt img{aspect-ratio:1/1}.cpo{position:absolute;left:4px;bottom:4px;display:flex;gap:4px}.cpo button{position:static;width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:11px;cursor:pointer}
+.drm{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));overflow:auto}
+.drh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.drh b{font-weight:400;font-size:16px}.chip.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.drw{position:relative;margin:8px auto;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;flex:none}.drw canvas{position:absolute;left:0;top:0;touch-action:none}.drb,.drt{margin:4px 0;justify-content:center}
 .ktc{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--sel);border-radius:14px;padding:14px 16px;margin-top:16px;font:inherit;color:var(--fg);cursor:pointer}
 .ktl{flex:1;min-width:0}.kth{font-size:16px;display:flex;align-items:center;gap:8px}.ktb{font-size:11px;border-radius:10px;padding:2px 9px;background:var(--line);color:var(--mute)}.ktb.on{background:var(--sel);color:var(--selfg)}
 .kts{font-size:12px;color:var(--mute);margin-top:4px;line-height:1.6}.ktp{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:13px;line-height:1.6}.ktp span{display:block;font-size:11px;color:var(--mute)}.ktx{font-size:24px;color:var(--mute)}
@@ -265,6 +268,46 @@ async function ktUrls(){const need=(S.kf?S.kf.photos:[]).map(p=>p.path).filter(p
 async function ktUp(el,k){const file=el.files&&el.files[0];el.value='';if(!file||!S.kf)return;
  try{const blob=await shrink(file),path=`${S.kf.id}/${Date.now()}-${k}.jpg`,r=await SB.storage.from('karte').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;
   S.kf.photos.push({path,k});await ktUrls();await ktSave(true);render()}catch(e){alert('写真を保存できませんでした')}}
+/* ===== 手書きカルテ（眉の図・目の図・写真に指で書き込む） ===== */
+const DRB={brow:'眉の図',eye:'目の図',blank:'白紙'};
+function drSvg(k){const T=(x,y,t)=>`<text x="${x}" y="${y}">${t}</text>`;let p='',t='';
+ if(k==='brow'){p=`<path d="M110 250 C170 190 280 175 350 215"/><path d="M690 250 C630 190 520 175 450 215"/><path d="M140 370 C200 310 300 310 350 360"/><path d="M150 375 C210 410 300 410 345 365"/><path d="M660 370 C600 310 500 310 450 360"/><path d="M650 375 C590 410 500 410 455 365"/>`;t=T(230,560,'右')+T(570,560,'左')}
+ if(k==='eye'){p=`<path d="M80 300 C170 380 300 380 370 305"/><path d="M430 305 C500 380 630 380 720 300"/>`;t=T(90,250,'目尻')+T(345,250,'目頭')+T(455,250,'目頭')+T(710,250,'目尻')+T(230,560,'右')+T(570,560,'左')}
+ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#fff"/><g fill="none" stroke="#cfc8bf" stroke-width="5" stroke-linecap="round">${p}</g><g fill="#bdb5ab" font-size="26" font-family="sans-serif" text-anchor="middle">${t}</g></svg>`)}
+function drOpen(path){if(!S.kf)return;const M=document.createElement('div');M.id='drm';M.className='drm';document.body.appendChild(M);document.body.style.overflow='hidden';
+ S.dr={path:path||null,bg:path?'img':'brow',col:'#2b2b2b',w:4,er:false,undo:[]};
+ M.innerHTML=`<div class="drh"><button class="chip" onclick="drClose()">閉じる</button><b>${path?'手書きを編集':'手書き'}</b><button class="chip pri" onclick="drSave()">保存</button></div><div id="drbgs" class="chips drb"></div><div class="drw" id="drw"><canvas id="drbg"></canvas><canvas id="drink"></canvas></div><div id="drtb" class="chips drt"></div>${path?'<p class="mute" style="margin:6px 0 0">前に描いた線の上から書き足せます（前の線は消しゴムでは消えません）</p>':''}`;
+ drBgUI();drTool();drInit()}
+function drBgUI(){const d=S.dr,el=$('drbgs');if(!el||d.path){if(el)el.innerHTML='';return}
+ const ph=S.kf.photos.filter(p=>p.k!=='draw').map((p,i)=>['ph:'+p.path,(p.k==='before'?'ビフォー':'アフター')+' 写真']);
+ el.innerHTML=[...Object.entries(DRB),...ph].map(([k,l])=>`<button class="cp ${d.bg===k?'on':''}" onclick="drBg(decodeURIComponent('${encodeURIComponent(k)}'))">${esc(l)}</button>`).join('')}
+function drTool(){const d=S.dr,el=$('drtb');if(!el)return;
+ el.innerHTML=[['#2b2b2b','黒'],['#c0392b','赤'],['#2f6fb5','青']].map(([c,l])=>`<button class="cp ${!d.er&&d.col===c?'on':''}" onclick="S.dr.er=false;S.dr.col='${c}';drTool()"><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${c};margin-right:5px;vertical-align:middle"></span>${l}</button>`).join('')
+ +[[2,'細'],[4,'中'],[8,'太']].map(([w,l])=>`<button class="cp ${d.w===w?'on':''}" onclick="S.dr.w=${w};drTool()">${l}</button>`).join('')
+ +`<button class="cp ${d.er?'on':''}" onclick="S.dr.er=!S.dr.er;drTool()">消しゴム</button><button class="cp" onclick="drUndo()">1つ戻す</button><button class="cp" onclick="drClear()">全部消す</button>`}
+function drInit(){const d=S.dr,W=Math.min(innerWidth-24,720),H=Math.round(W*3/4),dpr=window.devicePixelRatio||1,wr=$('drw');wr.style.width=W+'px';wr.style.height=H+'px';
+ ['drbg','drink'].forEach(id=>{const c=$(id);c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';c.getContext('2d').scale(dpr,dpr)});
+ d.W=W;d.H=H;d.bgx=$('drbg').getContext('2d');const c=$('drink'),x=c.getContext('2d');d.x=x;d.c=c;x.lineCap='round';x.lineJoin='round';
+ let on=false,pts=[];const pos=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
+ const seg=()=>{x.globalCompositeOperation=d.er?'destination-out':'source-over';x.strokeStyle=d.col;x.lineWidth=d.er?d.w*4:d.w;
+  if(pts.length<3){const a=pts[0],b=pts[pts.length-1];x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0]+.1,b[1]+.1);x.stroke();return}
+  const n=pts.length,a=pts[n-3],b=pts[n-2],e=pts[n-1];x.beginPath();x.moveTo((a[0]+b[0])/2,(a[1]+b[1])/2);x.quadraticCurveTo(b[0],b[1],(b[0]+e[0])/2,(b[1]+e[1])/2);x.stroke()};
+ c.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});c.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+ c.onpointerdown=e=>{on=true;d.undo.push(x.getImageData(0,0,c.width,c.height));if(d.undo.length>20)d.undo.shift();pts=[pos(e)];d.dirty=true;c.setPointerCapture&&c.setPointerCapture(e.pointerId);seg()};
+ c.onpointermove=e=>{if(!on)return;(e.getCoalescedEvents?e.getCoalescedEvents():[e]).forEach(ev=>{pts.push(pos(ev));seg()})};
+ c.onpointerup=c.onpointercancel=()=>{on=false;pts=[]};
+ drBg(d.bg)}
+function drBg(k){const d=S.dr;d.bg=k;drBgUI();const x=d.bgx;x.fillStyle='#fff';x.fillRect(0,0,d.W,d.H);
+ const src=k==='img'?S.urls[d.path]:k.startsWith('ph:')?S.urls[k.slice(3)]:drSvg(k);if(!src)return;
+ const im=new Image();if(/^https?:/.test(src))im.crossOrigin='anonymous';im.onload=()=>{const r=Math.min(d.W/im.width,d.H/im.height),w=im.width*r,h=im.height*r;x.fillStyle='#fff';x.fillRect(0,0,d.W,d.H);x.drawImage(im,(d.W-w)/2,(d.H-h)/2,w,h)};im.src=src}
+function drUndo(){const d=S.dr,u=d.undo.pop();if(u)d.x.putImageData(u,0,0)}
+function drClear(){const d=S.dr;if(!confirm('描いた線を全部消しますか？'))return;d.undo.push(d.x.getImageData(0,0,d.c.width,d.c.height));d.x.save();d.x.setTransform(1,0,0,1,0,0);d.x.clearRect(0,0,d.c.width,d.c.height);d.x.restore()}
+function drClose(){const M=$('drm');if(M&&M.remove)M.remove();document.body.style.overflow='';S.dr=null}
+async function drSave(){const d=S.dr;if(!d.dirty&&!d.path){alert('まだ何も描いていません');return}
+ try{const o=document.createElement('canvas');o.width=1200;o.height=900;const ox=o.getContext('2d');ox.fillStyle='#fff';ox.fillRect(0,0,1200,900);ox.drawImage($('drbg'),0,0,1200,900);ox.drawImage(d.c,0,0,1200,900);
+  const blob=await new Promise((res,rej)=>o.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',.85)),path=`${S.kf.id}/${Date.now()}-draw.jpg`,r=await SB.storage.from('karte').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;
+  if(d.path){await SB.storage.from('karte').remove([d.path]);S.kf.photos=S.kf.photos.map(p=>p.path===d.path?{path,k:'draw'}:p)}else S.kf.photos.push({path,k:'draw'});
+  await ktUrls();await ktSave(true);drClose();render()}catch(e){alert(String(e&&e.message).includes('blob')||String(e).includes('Security')?'写真の背景では保存できませんでした。眉の図・目の図・白紙で描いてください。':'保存できませんでした')}}
 async function ktDelPh(path){if(!confirm('この写真を削除しますか？'))return;await SB.storage.from('karte').remove([path]);S.kf.photos=S.kf.photos.filter(p=>p.path!==path);await ktSave(true);render()}
 /* ===== 予約の追加：お客様を検索して選ぶ ===== */
 function fcHtml(s,b){if(!S.fc)S.fc=b.name?{sel:true,name:b.name,tel:b.tel||'',cid:b.cid||null}:{sel:false,q:''};const f=S.fc;
@@ -480,6 +523,7 @@ function sheet(){
   +(f.kinds.includes('face')?`<div class="ks"><div class="kh">フェイシャルワックス</div><label>肌・産毛の状態</label><textarea rows="3" placeholder="乾燥ぎみ、頬の産毛がしっかり など" oninput="setP('face.memo',this.value)">${esc(getP('face.memo')||'')}</textarea></div>`:'')
   +(f.kinds.includes('other')?`<div class="ks"><div class="kh">その他</div><label>施術の内容・メモ</label><textarea rows="3" oninput="setP('other.memo',this.value)">${esc(getP('other.memo')||'')}</textarea></div>`:'')
   +`<div class="ks"><div class="kh">写真</div><div class="ph">${['before','after'].map(k=>`<div><div class="mute">${k==='before'?'ビフォー':'アフター'}</div>${f.photos.filter(p=>p.k===k).map(p=>`<div class="pt"><img src="${S.urls[p.path]||''}" alt="" onclick="if(this.src)window.open(this.src)"><button onclick="ktDelPh('${p.path}')" aria-label="削除">×</button></div>`).join('')}<button class="chip" style="margin-top:6px" onclick="document.getElementById('f-${k}').click()">＋ 追加</button><input id="f-${k}" type="file" accept="image/*" style="display:none" onchange="ktUp(this,'${k}')"></div>`).join('')}</div></div>`
+  +`<div class="ks"><div class="kh">手書き</div><p class="mute" style="margin:4px 0 0">眉の図・目の図・写真に、指で書き込めます</p><div class="ph">${f.photos.filter(p=>p.k==='draw').map(p=>`<div class="pt"><img src="${S.urls[p.path]||''}" alt="" style="aspect-ratio:4/3;object-fit:contain;background:#fff;cursor:pointer" onclick="drOpen('${p.path}')"><button onclick="ktDelPh('${p.path}')" aria-label="削除">×</button></div>`).join('')}</div><button class="chip" style="margin-top:6px" onclick="drOpen()">＋ 手書きで描く</button></div>`
   +`<div class="ks"><div class="kh">メモ</div><label>目元・自まつ毛の状態</label><textarea rows="2" oninput="S.kf.cond=this.value">${esc(f.cond||'')}</textarea><label>話した内容</label><textarea rows="3" oninput="S.kf.talk=this.value">${esc(f.talk||'')}</textarea><label>次回の話題</label><input value="${esc(f.next||'')}" placeholder="旅行の感想を聞く" oninput="S.kf.next=this.value"></div>`
   +`<div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="ktSave()">カルテを保存</button><div class="sp"></div><button class="btn o" onclick="S.kf=null;op({t:'bk',id:'${b.id}'})">戻る</button>`}
  if(s.t==='mg'){const c=custs().find(x=>x.k===s.k);if(!c){cl();return}
