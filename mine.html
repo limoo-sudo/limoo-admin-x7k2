@@ -10,7 +10,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.6}
 #app{max-width:480px;margin:0 auto;padding:20px 20px 130px}
-header{text-align:center;padding:12px 0 8px}.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:30px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo::after{content:'eye / brow';display:block;font-weight:300;font-size:.38em;letter-spacing:.2em;margin-top:6px;text-align:center}
+header{text-align:center;padding:12px 0 8px}.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:30px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo-sub{font-family:Futura,'Jost','Century Gothic',sans-serif;font-weight:300;font-size:11px;letter-spacing:.2em;margin-top:6px}.logo-img{max-height:60px;max-width:70%;display:inline-block;vertical-align:middle}
 h2{font-weight:300;font-size:19px;margin:22px 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 16px}.mute{color:var(--mute);font-size:12px}
 .kv{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}.kv span:first-child{color:var(--mute);flex:none}.kv span:last-child{text-align:right}
 .note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:18px;font-size:13px;line-height:1.8}
@@ -57,9 +57,14 @@ let S={v:'load',rows:[],b:null,wk:0,bm:{},date:null,time:null,err:''};
 function tooSoon(s,m){const n=new Date(),today=dstr(n),nm=n.getHours()*60+n.getMinutes(),lim=new Date(n.getFullYear(),n.getMonth(),n.getDate()+(SET.maxDays??50));
  if(s>dstr(lim))return true;if(s===today&&SET.sameday===false)return true;if(s===today&&m<nm+(SET.lead??30))return true;return false}
 const TX=()=>SET.tax?'（税込）':'';
+let BR={name:'limoo',sub:'eye / brow',logo:null};
+const BCOLS='shop_name,shop_sub,logo_path,color_acc,color_sel';
+function brandApply(d){if(!d)return;BR={name:d.shop_name||'limoo',sub:d.shop_sub??'',logo:d.logo_path?(/^(data:|blob:|https?:)/.test(d.logo_path)?d.logo_path:SB.storage.from('menu').getPublicUrl(d.logo_path).data.publicUrl):null};
+ const r=document.documentElement.style;if(d.color_acc)r.setProperty('--acc',d.color_acc);if(d.color_sel)r.setProperty('--sel',d.color_sel);document.title=document.title.replace(/^limoo/,BR.name)}
+function logoHtml(){const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));return BR.logo?`<img class="logo-img" src="${BR.logo}" alt="${e(BR.name)}">`:`<div class="logo">${e(BR.name)}</div>${BR.sub?`<div class="logo-sub">${e(BR.sub)}</div>`:''}`}
 function dayHours(d){const s=dstr(d);if(SET.closedW.includes(d.getDay())||SET.closedD.has(s))return null;const h=SET.hours&&SET.hours[d.getDay()];return h?{o:toMin(h.open),c:toMin(h.close)}:null}
-async function loadSettings(){const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,liff_id,max_days,sameday,lead_minutes,tax_label').eq('id',1).single(),SB.from('closed_dates').select('date')]);
- if(a.error||b.error)return;const hs=Object.values(a.data.hours);SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}}
+async function loadSettings(){const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,liff_id,max_days,sameday,lead_minutes,tax_label,'+BCOLS).eq('id',1).single(),SB.from('closed_dates').select('date')]);
+ if(a.error||b.error)return;brandApply(a.data);const hs=Object.values(a.data.hours);SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}}
 function setWeeks(){WEEKS=Math.max(1,Math.ceil(((SET.maxDays??50)+1)/7))}
 async function loadMine(){const{data,error}=await SB.rpc('my_bookings',{p_id_token:lineToken()});if(error)throw error;
  S.rows=data.map(r=>{const s=J(r.start_at),e=J(r.end_at);return{item:r.item,opts:r.options||[],date:s.date,start:s.min,min:e.min-s.min+(e.date>s.date?1440:0),price:r.price,token:r.manage_token,can:r.can_change}})}
@@ -88,7 +93,7 @@ async function confirmChange(){const btn=document.querySelector('.bar .btn');if(
  if(error){S.err=msgOf(error);await loadWeek();render();return}
  S.b={...S.b,date:S.date,start:S.time};try{await loadMine()}catch(e){}go('done')}
 function render(){
- const A=document.getElementById('app'),b=S.b;let h=`<header><div class="logo">limoo</div></header>`,bar='';const end=t=>fmt(t+b.min);
+ const A=document.getElementById('app'),b=S.b;let h=`<header>${logoHtml()}</header>`,bar='';const end=t=>fmt(t+b.min);
  if(S.v==='nol')h+=`<p class="sub ctr">LINEのアプリから開いてください。</p>`;
  if(S.v==='err')h+=`<p class="sub ctr">${S.err}</p>`;
  if(S.v==='none')h+=`<h2>ご予約の確認・変更</h2><div class="note">LINE連携されている、これからのご予約はありません。<br><br>LINEからご予約いただくと、ここで確認・変更できるようになります。お電話などでご予約の方は、ご来店時にスタッフにお声がけいただくと、LINE連携ができます。</div>`+(LIFF_OK?`<div class="sp" style="height:16px"></div><button class="btn" onclick="location.href='https://liff.line.me/${LIFF_ID}/reserve.html'">予約する</button>`:'');

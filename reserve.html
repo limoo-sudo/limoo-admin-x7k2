@@ -11,7 +11,7 @@
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.6}
 #app{max-width:480px;margin:0 auto;padding:20px 20px 120px}
 header{text-align:center;padding:12px 0 8px}
-.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:30px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo::after{content:'eye / brow';display:block;font-weight:300;font-size:.38em;letter-spacing:.2em;margin-top:6px;text-align:center}
+.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:30px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo-sub{font-family:Futura,'Jost','Century Gothic',sans-serif;font-weight:300;font-size:11px;letter-spacing:.2em;margin-top:6px}.logo-img{max-height:60px;max-width:70%;display:inline-block;vertical-align:middle}
 .prog{display:flex;gap:4px;margin:14px 0 6px}.prog i{flex:1;height:2px;background:var(--line)}.prog i.on{background:var(--sel)}
 h2{font-weight:300;font-size:19px;margin:22px 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 16px}
 .card{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:14px;padding:16px 18px;margin:0 0 10px;font:inherit;min-height:56px;cursor:pointer}
@@ -101,8 +101,8 @@ const Api={
   const{data,error}=await SB.rpc('create_booking_v3',{p_name:c.name,p_tel:c.tel,p_email:c.mail||null,p_line:lineToken(),p_items:S.cart.map(e=>e.sel.id),p_options:[...new Set(S.cart.flatMap(e=>[...e.opts]))],p_start:new Date(`${S.date}T${fmt(S.time)}:00+09:00`).toISOString(),p_memo:c.memo||null,p_kana:c.kana||null});
   if(error)throw error;return{id:'LM'+String(data.id).slice(0,6).toUpperCase(),price:data.price,minutes:data.minutes}}};
 let SET={hours:null,closedW:[3],closedD:new Set(),o:540,c:1200};
-Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,cat_photos,notice_rules,notice_before').eq('id',1).single(),SB.from('closed_dates').select('date')]);
- if(a.error||b.error)throw a.error||b.error;const hs=Object.values(a.data.hours);
+Api.loadSettings=async()=>{const[a,b]=await Promise.all([SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,cat_photos,notice_rules,notice_before,'+BCOLS).eq('id',1).single(),SB.from('closed_dates').select('date')]);
+ if(a.error||b.error)throw a.error||b.error;brandApply(a.data);const hs=Object.values(a.data.hours);
  SET={hours:a.data.hours,closedW:a.data.closed_weekdays||[],closedD:new Set(b.data.map(x=>x.date)),optMap:a.data.opt_map||null,photos:a.data.cat_photos||{},nr:a.data.notice_rules||'',nb:a.data.notice_before||'',maxDays:a.data.max_days??50,sameday:a.data.sameday!==false,lead:a.data.lead_minutes??30,tax:!!a.data.tax_label,o:Math.min(...hs.map(h=>toMin(h.open))),c:Math.max(...hs.map(h=>toMin(h.close)))}};
 function tooSoon(s,m){const n=new Date(),today=dstr(n),nm=n.getHours()*60+n.getMinutes(),lim=new Date(n.getFullYear(),n.getMonth(),n.getDate()+(SET.maxDays??50));
  if(s>dstr(lim))return true;if(s===today&&SET.sameday===false)return true;if(s===today&&m<nm+(SET.lead??30))return true;return false}
@@ -116,6 +116,11 @@ const pUrl=p=>/^(data:|blob:|https?:)/.test(p)?p:SB.storage.from('menu').getPubl
 function carHtml(n){const L=(SET.photos||{})[n]||[];if(!L.length)return'';return `<div class="car" onscroll="carDot(this)">${L.map(p=>`<img src="${pUrl(p)}" alt="">`).join('')}</div>${L.length>1?`<div class="dots">${L.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}`}
 function carDot(el){const i=Math.round(el.scrollLeft/el.clientWidth),d=el.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,j)=>x.classList.toggle('on',j===i))}
 const NR_DEF="◎ご予約時間に遅れる場合は、お電話またはLINEでご連絡ください。遅れの時間によっては、施術内容やご予約の変更をお願いすることがあります。\n◎ご予約の変更は、ご予約日の前々日（23:59）まで、お客様ご自身で行えます。\n◎キャンセル、および期限後のご変更は、お電話またはLINEでご連絡ください。";
+let BR={name:'limoo',sub:'eye / brow',logo:null};
+const BCOLS='shop_name,shop_sub,logo_path,color_acc,color_sel';
+function brandApply(d){if(!d)return;BR={name:d.shop_name||'limoo',sub:d.shop_sub??'',logo:d.logo_path?(/^(data:|blob:|https?:)/.test(d.logo_path)?d.logo_path:SB.storage.from('menu').getPublicUrl(d.logo_path).data.publicUrl):null};
+ const r=document.documentElement.style;if(d.color_acc)r.setProperty('--acc',d.color_acc);if(d.color_sel)r.setProperty('--sel',d.color_sel);document.title=document.title.replace(/^limoo/,BR.name)}
+function logoHtml(){const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));return BR.logo?`<img class="logo-img" src="${BR.logo}" alt="${e(BR.name)}">`:`<div class="logo">${e(BR.name)}</div>${BR.sub?`<div class="logo-sub">${e(BR.sub)}</div>`:''}`}
 function msgOf(e){const m=(e&&(e.message||''))+'',c=e&&e.code;
  if(c==='23P01'||/no_overlap|exclusion/.test(m))return'その時間はたった今埋まってしまいました。別の時間をお選びください。';
  if(/too_many/.test(m))return'ご予約の上限に達しています。お手数ですが、お電話またはLINEでご連絡ください。';
@@ -154,7 +159,7 @@ const go=(n)=>{S.step=n;S.cerr='';render();scrollTo(0,0)};
 
 function render(){
  const A=document.getElementById('app'),k=STEPS[S.step];
- let h=`<header><div class="logo">limoo</div></header><div class="prog">${STEPS.slice(0,5).map((_,i)=>`<i class="${i<=S.step?'on':''}"></i>`).join('')}</div>`;
+ let h=`<header>${logoHtml()}</header><div class="prog">${STEPS.slice(0,5).map((_,i)=>`<i class="${i<=S.step?'on':''}"></i>`).join('')}</div>`;
  if(S.step>0&&k!=='done')h+=`<button class="back" onclick="go(S.step-1)">← 戻る</button>`;
  let bar='';
  if(k==='menu'){

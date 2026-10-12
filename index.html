@@ -20,7 +20,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:300;letter-spacing:.04em;line-height:1.5}
 #app{max-width:560px;margin:0 auto;padding:14px 18px 170px}
-.top{display:flex;justify-content:space-between;align-items:baseline}.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:22px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo::after{content:'eye / brow';display:block;font-weight:300;font-size:.38em;letter-spacing:.2em;margin-top:6px;text-align:center}.mute{color:var(--mute);font-size:12px}
+.top{display:flex;justify-content:space-between;align-items:baseline}.logo{font-family:Futura,'Jost','Century Gothic',sans-serif;font-size:22px;font-weight:500;letter-spacing:.02em;line-height:1;display:inline-block}.logo-sub{font-family:Futura,'Jost','Century Gothic',sans-serif;font-weight:300;font-size:11px;letter-spacing:.2em;margin-top:6px}.logo-img{max-height:60px;max-width:70%;display:inline-block;vertical-align:middle}.mute{color:var(--mute);font-size:12px}
 .nav{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px}.nav b{font-weight:300;font-size:18px}
 .ib{width:44px;height:44px;border:1px solid var(--line);border-radius:22px;background:var(--card);color:var(--fg);font-size:18px;cursor:pointer}
 .chip{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:20px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
@@ -48,7 +48,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .blk{position:absolute;left:54px;right:4px;border:0;border-radius:10px;background:var(--acc);color:var(--accfg);padding:5px 10px;text-align:left;font:inherit;font-size:12px;line-height:1.35;overflow:hidden;cursor:pointer}
 .blk div{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now{position:absolute;left:46px;right:0;border-top:2px solid var(--red);z-index:2;pointer-events:none}
-.lg{max-width:340px;margin:14vh auto 0;text-align:center}.lg form{text-align:left}.lg .logo{font-size:30px;margin-bottom:6px}
+.lg{max-width:340px;margin:14vh auto 0;text-align:center}.lg form{text-align:left}.lg .logo{font-size:30px}.lg .logo-sub{margin-bottom:6px}.lgw{display:inline-block}.lgw .logo-img{max-height:44px}
 .seg{display:flex;background:var(--line);border-radius:12px;padding:3px;margin-top:14px}.seg button{flex:1;min-height:38px;border:0;border-radius:10px;background:none;color:var(--mute);font:inherit;font-size:14px;cursor:pointer}.seg button.on{background:var(--card);color:var(--fg)}
 .closedl{position:absolute;left:52px;right:0;top:40%;text-align:center;color:var(--mute);font-size:14px;letter-spacing:.3em}
 .wkh{display:grid;grid-template-columns:30px repeat(7,1fr);margin-bottom:4px}.wkh button{border:0;background:none;color:var(--fg);font:inherit;font-size:15px;line-height:1.2;padding:6px 0;border-radius:10px;cursor:pointer}.wkh small{font-size:10px;color:var(--mute)}.wkh .td{background:var(--sel);color:var(--selfg)}.wkh .td small{color:inherit}.wkh .cl{opacity:.4}
@@ -82,6 +82,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px
 .drm{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));overflow:auto}
 .drh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.drh b{font-weight:400;font-size:16px}.chip.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
 .drw{position:relative;margin:8px auto;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;flex:none}.drw canvas{position:absolute;left:0;top:0;touch-action:none}.drb,.drt{margin:4px 0;justify-content:center}
+.lgp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;margin-bottom:8px}.lgp img{max-height:70px;max-width:100%}.sw{display:inline-block;width:12px;height:12px;border-radius:6px;margin-right:3px;vertical-align:middle}
+.fes{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px;background:var(--card)}.fef{border-top:1px dashed var(--line);padding:10px 0 4px;margin-top:8px}.fef input,.fef textarea,.fef select{margin-top:6px}.fck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg);margin:8px 0 0;cursor:pointer}.fck input{width:20px;height:20px;margin:0}
 .ktc{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--sel);border-radius:14px;padding:14px 16px;margin-top:16px;font:inherit;color:var(--fg);cursor:pointer}
 .ktl{flex:1;min-width:0}.kth{font-size:16px;display:flex;align-items:center;gap:8px}.ktb{font-size:11px;border-radius:10px;padding:2px 9px;background:var(--line);color:var(--mute)}.ktb.on{background:var(--sel);color:var(--selfg)}
 .kts{font-size:12px;color:var(--mute);margin-top:4px;line-height:1.6}.ktp{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:13px;line-height:1.6}.ktp span{display:block;font-size:11px;color:var(--mute)}.ktx{font-size:24px;color:var(--mute)}
@@ -115,23 +117,24 @@ const dayB=()=>D.bk.filter(b=>b.date===S.date).sort((a,b)=>a.start-b.start);
 /* ===== DB（Supabase）読み込み：画面は従来どおり D（予約・メニュー・オプション）を描画する ===== */
 async function loadAll(){
  if(!STAFF){const r=await SB.from('staff').select('id').eq('active',true).order('name').limit(1);STAFF=r.data&&r.data[0]?r.data[0].id:null}
- const[b,m,t,st,cd,cu,kt,py,fr]=await Promise.all([
+ const[b,m,t,st,cd,cu,kt,py,fr,ftp]=await Promise.all([
   SB.from('bookings').select('id,customer_id,menu,item,price,memo,start_at,end_at,status,customers(name,tel,memo,hidden)').order('start_at').limit(5000),
   SB.from('menu_items').select('id,kind,grp,name,price,minutes,sort,active,description').order('sort'),
   SB.from('time_blocks').select('id,start_at,end_at,title').order('start_at'),
-  SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,pay_methods,cat_photos,notice_rules,notice_before,remind_title,after_on,after_text,after_iv').eq('id',1).single(),
+  SB.from('salon_settings').select('hours,closed_weekdays,opt_map,max_days,sameday,lead_minutes,tax_label,pay_methods,cat_photos,notice_rules,notice_before,remind_title,after_on,after_text,after_iv,'+BCOLS).eq('id',1).single(),
   SB.from('closed_dates').select('date,note').order('date'),
   SB.from('customers').select('id,name,tel,email,memo,hidden,kana,line_user_id').limit(10000),
   SB.from('kartes').select('booking_id,data,talk,next_topic,condition,photos').limit(10000),
   SB.from('payments').select('booking_id,subtotal,discounts,goods,total,method,memo,paid_at').limit(20000),
-  SB.from('form_responses').select('id,customer_id,template,created_at').order('created_at',{ascending:false}).limit(5000)]);
- if(b.error||m.error||t.error||st.error||cd.error||cu.error||kt.error||py.error||fr.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
+  SB.from('form_responses').select('id,customer_id,template,created_at').order('created_at',{ascending:false}).limit(5000),
+  SB.from('form_templates').select('id,title,def,sort,active').order('sort')]);
+ if(b.error||m.error||t.error||st.error||cd.error||cu.error||kt.error||py.error||fr.error||ftp.error){alert('データを読み込めませんでした。通信状況を確認してください。');return false}
  D.bk=b.data.map(r=>{const t=new Date(new Date(r.start_at).getTime()+9*3600e3);return{id:r.id,cid:r.customer_id,date:t.toISOString().slice(0,10),start:t.getUTCHours()*60+t.getUTCMinutes(),min:(new Date(r.end_at)-new Date(r.start_at))/60000,name:r.customers.name,tel:r.customers.tel||'',item:r.item,menu:r.menu||'',price:r.price,memo:r.memo||'',status:r.status==='confirmed'?'ok':'x',hid:!!r.customers.hidden}});
  const J=x=>new Date(new Date(x).getTime()+9*3600e3);
  D.pb=t.data.map(r=>{const a=J(r.start_at),e=J(r.end_at);return{id:r.id,date:a.toISOString().slice(0,10),start:a.getUTCHours()*60+a.getUTCMinutes(),end:e.getUTCHours()*60+e.getUTCMinutes(),title:r.title}});
- D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false,pays:st.data.pay_methods||['現金','クレジット','IC','PayPay','その他バーコード決済'],photos:st.data.cat_photos||{},nr:st.data.notice_rules||'',nb:st.data.notice_before||'',rt:st.data.remind_title||'',ao:st.data.after_on,at:st.data.after_text||'',aiv:st.data.after_iv||{ext:'1 month',perm:'6 weeks',brow:'2 months'}};
+ brandApply(st.data);D.set={hours:st.data.hours,closedW:st.data.closed_weekdays||[],closedD:new Set(cd.data.map(r=>r.date)),closedList:cd.data,optMap:st.data.opt_map||{},maxDays:st.data.max_days??50,sameday:st.data.sameday!==false,lead:st.data.lead_minutes??120,tax:st.data.tax_label!==false,pays:st.data.pay_methods||['現金','クレジット','IC','PayPay','その他バーコード決済'],photos:st.data.cat_photos||{},nr:st.data.notice_rules||'',nb:st.data.notice_before||'',rt:st.data.remind_title||'',brand:{acc:st.data.color_acc,sel:st.data.color_sel},ao:st.data.after_on,at:st.data.after_text||'',aiv:st.data.after_iv||{ext:'1 month',perm:'6 weeks',brow:'2 months'}};
  {const hs=Object.values(D.set.hours);CFG.open=Math.min(...hs.map(h=>toM(h.open)));CFG.close=Math.max(...hs.map(h=>toM(h.close)));H0=Math.min(480,Math.floor(CFG.open/60)*60);H1=Math.max(1260,Math.ceil(CFG.close/60)*60)}
- D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));D.pay=Object.fromEntries(py.data.map(r=>[r.booking_id,r]));D.fr=fr.data;
+ D.cust=cu.data;D.kt=Object.fromEntries(kt.data.map(r=>[r.booking_id,r]));D.pay=Object.fromEntries(py.data.map(r=>[r.booking_id,r]));D.fr=fr.data;D.ft=ftp.data;
  D.cu={};b.data.forEach(r=>{if(r.customers.memo)D.cu[ck({name:r.customers.name,tel:r.customers.tel||''})]=r.customers.memo});
  const mk=kind=>{const gs=[],ix={};m.data.filter(x=>x.kind===kind).forEach(x=>{let g=ix[x.grp];if(!g){g=ix[x.grp]={n:x.grp,items:[],all:[]};gs.push(g)}g.all.push(x.id);if(x.active)g.items.push([x.name,x.price,x.minutes,x.id,x.description||''])});return gs};
  D.cat=mk('menu');D.opts=mk('option');return true}
@@ -146,15 +149,21 @@ async function dbSaveBk(id,r,vi){
  if(grp)row.menu=grp;
  const res=id?await SB.from('bookings').update(row).eq('id',id):await SB.from('bookings').insert({...row,staff_id:STAFF,menu:grp||r.item,options:[]});
  if(res.error)throw res.error}
+let BR={name:'limoo',sub:'eye / brow',logo:null};
+const BCOLS='shop_name,shop_sub,logo_path,color_acc,color_sel';
+function brandApply(d){if(!d)return;BR={name:d.shop_name||'limoo',sub:d.shop_sub??'',logo:d.logo_path?(/^(data:|blob:|https?:)/.test(d.logo_path)?d.logo_path:SB.storage.from('menu').getPublicUrl(d.logo_path).data.publicUrl):null};
+ const r=document.documentElement.style;if(d.color_acc)r.setProperty('--acc',d.color_acc);if(d.color_sel)r.setProperty('--sel',d.color_sel);document.title=document.title.replace(/^limoo/,BR.name)}
+function logoHtml(){const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));return BR.logo?`<img class="logo-img" src="${BR.logo}" alt="${e(BR.name)}">`:`<div class="logo">${e(BR.name)}</div>${BR.sub?`<div class="logo-sub">${e(BR.sub)}</div>`:''}`}
 /* ===== ログイン（Supabase Auth：メール＋パスワード。管理者テーブルに登録された人だけ入れる） ===== */
 const SB=(window.supabase&&typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL&&!SUPABASE_URL.startsWith('YOUR'))?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 let AUTH={user:null,admin:false,ready:false,err:'',email:''};
 async function isAdmin(){try{const{data,error}=await SB.rpc('is_admin');return !error&&data===true}catch(e){return false}}
 async function boot(){
  if(!SB){render();return}
+ try{const r=await SB.from('salon_settings').select(BCOLS).eq('id',1).single();if(r.data)brandApply(r.data)}catch(e){}
  const{data}=await SB.auth.getSession();AUTH.user=data.session?data.session.user:null;AUTH.admin=AUTH.user?await isAdmin():false;
  if(AUTH.user&&!AUTH.admin){await SB.auth.signOut();AUTH.user=null;AUTH.err='このアカウントには管理画面の権限がありません'}
- AUTH.ready=true;if(AUTH.user)await loadAll();render();
+ AUTH.ready=true;if(AUTH.user&&lkGet())S.locked=true;if(AUTH.user)await loadAll();render();lkWatch();
  if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(!document.hidden&&AUTH.user&&AUTH.admin&&!S.sheet)refresh()});
  SB.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'&&AUTH.user){AUTH.user=null;AUTH.admin=false;render()}});
 }
@@ -166,15 +175,16 @@ async function login(e){e.preventDefault();const em=document.getElementById('le'
  if(!AUTH.admin){await SB.auth.signOut();AUTH.user=null;AUTH.err='このアカウントには管理画面の権限がありません'}
  if(AUTH.admin)await loadAll();render()}
 async function logout(){await SB.auth.signOut();AUTH.user=null;AUTH.admin=false;AUTH.err='';S.sheet=null;render()}
-const loginHtml=()=>`<div class="lg"><div class="logo">limoo</div><p class="mute" style="margin:0 0 28px">管理画面</p><form onsubmit="login(event)"><label>メールアドレス</label><input id="le" type="email" inputmode="email" autocomplete="username" autocapitalize="off" value="${esc(AUTH.email||'')}" required><label>パスワード</label><input id="lp" type="password" autocomplete="current-password" required>${AUTH.err?`<div class="err">${AUTH.err}</div>`:''}<div class="sp"></div><button class="btn" id="lb" type="submit">ログイン</button></form></div>`;
+const loginHtml=()=>`<div class="lg">${logoHtml()}<p class="mute" style="margin:0 0 28px">管理画面</p><form onsubmit="login(event)"><label>メールアドレス</label><input id="le" type="email" inputmode="email" autocomplete="username" autocapitalize="off" value="${esc(AUTH.email||'')}" required><label>パスワード</label><input id="lp" type="password" autocomplete="current-password" required>${AUTH.err?`<div class="err">${AUTH.err}</div>`:''}<div class="sp"></div><button class="btn" id="lb" type="submit">ログイン</button></form></div>`;
 function render(){
  const A=$('app'),E=$('sheet');
- if(!SB){E.innerHTML='';A.innerHTML=`<div class="lg"><div class="logo">limoo</div><p class="mute">管理画面</p><p style="font-size:13px;line-height:1.8;margin-top:24px">ログインの設定がまだ完了していません。<br>config.js に Supabase のURLとキーを入れてください。</p></div>`;return}
+ if(!SB){E.innerHTML='';A.innerHTML=`<div class="lg">${logoHtml()}<p class="mute">管理画面</p><p style="font-size:13px;line-height:1.8;margin-top:24px">ログインの設定がまだ完了していません。<br>config.js に Supabase のURLとキーを入れてください。</p></div>`;return}
  if(!AUTH.ready){E.innerHTML='';A.innerHTML=`<p class="mute" style="text-align:center;padding:30vh 0 0">読み込み中…</p>`;return}
  if(!AUTH.user||!AUTH.admin){E.innerHTML='';A.innerHTML=loginHtml();return}
+ if(S.locked){E.innerHTML='';A.innerHTML=lockHtml();return}
  renderApp()}
 function renderApp(){
- const A=$('app');let h=`<div class="top"><span class="logo">limoo</span><button class="chip" onclick="logout()">ログアウト</button></div>`;
+ const A=$('app');let h=`<div class="top"><span class="lgw">${logoHtml()}</span><button class="chip" onclick="logout()">ログアウト</button></div>`;
  if(S.tab==='bk'){h+=bkView();
  }else if(S.tab==='rp'){h+=rpView()
  }else if(S.tab==='st'){h+=setView()
@@ -373,27 +383,98 @@ async function saveAfter(){const iv={};Object.keys(AK).forEach(k=>{iv[k]=`${$('a
  const r=await SB.from('salon_settings').update({after_on:$('aon').checked,after_text:$('atx').value,after_iv:iv}).eq('id',1);if(r.error){$('ae').textContent='保存できませんでした';return}await refresh();alert('お礼メッセージを保存しました')}
 /* ===== カウンセリングシート・同意書 ===== */
 const FSHORT={cs_ext:'マツエク',cs_brow:'眉毛（アイブロウ）',cs_perm:'まつ毛パーマ'};
-const ftitle=id=>(typeof FORMS!=='undefined'&&(FORMS.find(f=>f.id===id)||{}).title)||id;
-function formBox(c){if(typeof FORMS==='undefined')return'';const L=(D.fr||[]).filter(r=>c.ids.includes(r.customer_id));
+const FT=()=>(D.ft||[]).filter(x=>x.active),ftRow=id=>(D.ft||[]).find(x=>x.id===id),ftDef=id=>(ftRow(id)||{}).def||(typeof FORMS!=='undefined'?FORMS.find(f=>f.id===id):null);
+const ftitle=id=>(ftRow(id)||{}).title||(ftDef(id)||{}).title||id,ftShort=id=>{const r=ftRow(id);return r?(r.def.short||r.title):id};
+function formBox(c){const L=(D.fr||[]).filter(r=>c.ids.includes(r.customer_id));
  let h=`<div class="grp">カウンセリング・同意書</div>`+(L.length?L.map(r=>`<button class="it" onclick="op({t:'fv',id:'${r.id}'})"><span>${esc(ftitle(r.template))}<div class="mute">${new Date(r.created_at).toLocaleDateString('ja-JP')}</div></span><span class="mute">›</span></button>`).join(''):`<p class="mute">まだ記入されたものはありません</p>`);
  if(S.fq&&S.fq.k===c.k)h+=`<div style="text-align:center;margin:14px 0"><div style="margin-bottom:8px">${esc(ftitle(S.fq.tpl))}</div><div id="fqr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div><p class="mute">お客様のスマホのカメラで読み取ってもらってください（30分間有効・1回のみ）</p><a class="chip" href="${S.fq.url}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">この端末で記入する</a> <button class="chip" onclick="S.fq=null;render()">閉じる</button></div>`;
- else h+=`<div class="mute" style="margin:12px 0 6px">メニューに合った用紙を選ぶと、QRが出ます</div><div class="chips">${FORMS.map(f=>`<button class="cp" onclick="mkForm(decodeURIComponent('${encodeURIComponent(c.k)}'),'${f.id}')">${FSHORT[f.id]||esc(f.title)}</button>`).join('')}</div>`;
+ else h+=`<div class="mute" style="margin:12px 0 6px">メニューに合った用紙を選ぶと、QRが出ます</div><div class="chips">${FT().map(f=>`<button class="cp" onclick="mkForm(decodeURIComponent('${encodeURIComponent(c.k)}'),'${f.id}')">${esc((f.def&&f.def.short)||f.title)}</button>`).join('')}</div>`;
  return h}
-function formQuick(b){if(typeof FORMS==='undefined'||b.status!=='ok')return'';const ids=[...new Set(guessKinds(b).map(x=>({ext:'cs_ext',lower:'cs_ext',perm:'cs_perm',brow:'cs_brow'})[x]).filter(Boolean))];if(!ids.length)return'';
- return `<div class="mute" style="margin:16px 0 6px">カウンセリング・同意書を出す</div><div class="chips">${ids.map(id=>`<button class="cp" onclick="fmFromBk('${b.id}','${id}')">${FSHORT[id]}</button>`).join('')}</div>`}
+function formQuick(b){if(b.status!=='ok')return'';const kk=guessKinds(b),ids=FT().filter(f=>((f.def&&f.def.kinds)||[]).some(k=>kk.includes(k))).map(f=>f.id);if(!ids.length)return'';
+ return `<div class="mute" style="margin:16px 0 6px">カウンセリング・同意書を出す</div><div class="chips">${ids.map(id=>`<button class="cp" onclick="fmFromBk('${b.id}','${id}')">${esc(ftShort(id))}</button>`).join('')}</div>`}
 async function fmFromBk(bid,tpl){const b=D.bk.find(x=>x.id===bid),g=b&&custs().find(x=>x.ids.includes(b.cid));if(!g)return;S.sheet={t:'cu',k:g.k};await mkForm(g.k,tpl)}
 async function mkForm(k,tpl){const ids=custs().find(x=>x.k===k).ids,r=await SB.from('form_tokens').insert({template:tpl,customer_ids:ids}).select('token').single();
  if(r.error||!r.data){alert('QRを作れませんでした');return}const base=location.href.replace(/[^/]*([?#].*)?$/,'');S.fq={k,tpl,url:`${base}form.html?t=${r.data.token||r.data.id}`};render()}
 async function fvLoad(id){const r=await SB.from('form_responses').select('*').eq('id',id).single();S.fvd=r.data||{id,err:1};render()}
 function fvVal(A,f){const w=o=>A[f.k+'__'+o]?`（${A[f.k+'__'+o]}）`:'';
  if(f.type==='one')return A[f.k]?A[f.k]+w(A[f.k]):'';if(f.type==='multi')return (A[f.k]||[]).map(o=>o+w(o)).join('、');
- if(f.type==='grid')return f.rows.map(([r],i)=>A[f.k+'.'+i]?`${r}：${A[f.k+'.'+i]}`:'').filter(Boolean).join('<br>');
+ if(f.type==='grid')return f.rows.map(([r],i)=>A[f.k+'.'+i]?`${esc(r)}：${esc(A[f.k+'.'+i])}`:'').filter(Boolean).join('<br>');
  if(f.type==='agree')return (A[f.k]||[]).length>=f.items.length?'すべて確認・同意済み':((A[f.k]||[]).length?'一部のみ':'');return A[f.k]||''}
-function fvHtml(r){if(r.err)return `<h3>読み込めませんでした</h3>`;const t=FORMS.find(f=>f.id===r.template)||{sections:[]},A=r.answers||{};let h=`<h3>${esc(t.title||r.template)}</h3><p class="mute" style="margin:0">${new Date(r.created_at).toLocaleString('ja-JP')}</p>`;
+function fvHtml(r){if(r.err)return `<h3>読み込めませんでした</h3>`;const t=r.def||ftDef(r.template)||{sections:[]},A=r.answers||{};let h=`<h3>${esc(t.title||r.template)}</h3><p class="mute" style="margin:0">${new Date(r.created_at).toLocaleString('ja-JP')}</p>`;
  const ps=t.sections.filter(s=>s.p||s.sub).map(s=>s.t);if(ps.length)h+=`<div class="tip"><b>説明の確認</b>${esc(ps.join('・'))} を確認のうえ同意</div>`;
  t.sections.forEach(s=>{const rows=(s.f||[]).filter(f=>f.type!=='note').map(f=>{const v=fvVal(A,f);return v?`<div class="kv"><span>${esc(f.l&&!f.l.startsWith('（')?f.l:s.t)}</span><span>${f.type==='grid'?v:esc(v)}</span></div>`:''}).join('');if(rows)h+=`<div class="grp">${esc(s.t)}</div>`+rows});
- if(r.signature)h+=`<div class="grp">ご署名</div><img src="${r.signature}" alt="署名" style="width:100%;background:#fff;border-radius:12px;border:1px solid var(--line)">`;
+ if(r.signature&&/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(r.signature))h+=`<div class="grp">ご署名</div><img src="${r.signature}" alt="署名" style="width:100%;background:#fff;border-radius:12px;border:1px solid var(--line)">`;
  const g=custs().find(x=>x.ids.includes(r.customer_id));return h+`<div class="sp"></div>`+(g?`<button class="btn o" onclick="S.fvd=null;op({t:'cu',k:decodeURIComponent('${encodeURIComponent(g.k)}')})">お客様の詳細に戻る</button>`:`<button class="btn o" onclick="cl()">閉じる</button>`)}
+/* ===== お店の情報・デザイン ===== */
+const BPRE=[['グレージュ×水色','#8C7F72','#9FC3DA'],['モノトーン','#2b2b2b','#8a8a8a'],['くすみピンク','#B8968A','#D9B8B0'],['ミント','#6F8F86','#A9D3C5']];
+async function saveBrand(){const b=S.bf;if(!b.name.trim()){$('be').textContent='お店の名前を入力してください';return}
+ const r=await SB.from('salon_settings').update({shop_name:b.name.trim(),shop_sub:b.sub.trim(),color_acc:b.acc,color_sel:b.sel}).eq('id',1);if(r.error){$('be').textContent='保存できませんでした';return}S.bf=null;await refresh();alert('お店の情報を保存しました')}
+function logoPng(file){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const m=800,sc=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);c.toBlob(b=>b?res(b):rej(new Error('png')),'image/png')};img.onerror=rej;img.src=URL.createObjectURL(file)})}
+async function logoUp(el){const f=el.files&&el.files[0];el.value='';if(!f)return;try{const b=await logoPng(f),p=`brand/logo-${Date.now()}.png`,r=await SB.storage.from('menu').upload(p,b,{contentType:'image/png'});if(r.error)throw r.error;
+ const u=await SB.from('salon_settings').update({logo_path:p}).eq('id',1);if(u.error)throw u.error;await refresh()}catch(e){alert('ロゴを保存できませんでした')}}
+async function logoDel(){if(!confirm('ロゴを外して、お店の名前を文字で表示しますか？'))return;const r=await SB.from('salon_settings').update({logo_path:null}).eq('id',1);if(r.error){alert('変更できませんでした');return}BR.logo=null;await refresh()}
+/* ===== カウンセリング・同意書の編集 ===== */
+const FTY={text:'記述（1行）',textarea:'記述（長文）',one:'選択（1つ）',multi:'選択（複数）',date:'日付',tel:'電話番号',time:'時刻',note:'説明文（表示のみ）',agree:'同意のチェック'};
+const feKey=()=>'q'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function feMv(kind,i,n){return `<button class="dx" onclick="feMove('${kind}',${i},-1)" ${i===0?'disabled style="opacity:.25"':''} aria-label="上へ">▲</button><button class="dx" onclick="feMove('${kind}',${i},1)" ${i===n-1?'disabled style="opacity:.25"':''} aria-label="下へ">▼</button>`}
+function feField(i,j,x,n){const P=`S.fe.def.sections[${i}].f[${j}]`,ch=['one','multi'].includes(x.type);
+ return `<div class="fef"><div class="row"><select onchange="${P}.type=this.value;feFix(${i},${j});render()" style="flex:1;padding:8px">${Object.entries(FTY).map(([k,l])=>`<option value="${k}" ${x.type===k?'selected':''}>${l}</option>`).join('')}</select><span style="display:flex;flex:none">${feMv('f'+i,j,n)}<button class="dx" onclick="feDel('f${i}',${j})" aria-label="削除">×</button></span></div>`
+ +(x.type==='note'?`<textarea rows="2" placeholder="表示する文" oninput="${P}.x=this.value">${esc(x.x||'')}</textarea>`
+ :x.type==='agree'?`<textarea rows="3" placeholder="同意の項目（1行に1つ。お客様は全部にチェックが必要です）" oninput="${P}.items=this.value.split('\\n').filter(y=>y.trim())">${esc((x.items||[]).join('\n'))}</textarea>`
+ :`<input value="${esc(x.l||'')}" placeholder="質問文" oninput="${P}.l=this.value">${ch?`<textarea rows="3" placeholder="選択肢（1行に1つ）" oninput="${P}.o=this.value.split('\\n').filter(y=>y.trim())">${esc((x.o||[]).join('\n'))}</textarea><input value="${esc((x.wt||[]).join('、'))}" placeholder="記入欄を出す選択肢（例：その他、ご紹介）" oninput="${P}.wt=this.value.split(/[、,]/).map(y=>y.trim()).filter(Boolean)">`:''}<label class="fck"><input type="checkbox" ${x.req?'checked':''} onchange="${P}.req=this.checked?1:0"> 必須にする</label>`)+`</div>`}
+function feHtml(){const f=S.fe,d=f.def;let h=`<h3>用紙の編集</h3>
+ <label>用紙の名前</label><input value="${esc(f.title)}" oninput="S.fe.title=this.value">
+ <label>短い名前（ボタンに出ます）</label><input value="${esc(d.short||'')}" placeholder="例）マツエク" oninput="S.fe.def.short=this.value">
+ <label>出すメニュー（予約の詳細に、この用紙のボタンが出ます）</label><div class="chips">${Object.entries(KT).map(([k,l])=>`<button class="cp ${(d.kinds||[]).includes(k)?'on':''}" onclick="feKind('${k}')">${l}</button>`).join('')}</div>
+ <label>最初のあいさつ文</label><textarea rows="2" oninput="S.fe.def.intro=this.value">${esc(d.intro||'')}</textarea>`;
+ d.sections.forEach((s,i)=>{h+=`<div class="fes"><div class="row"><input value="${esc(s.t)}" placeholder="まとまりの見出し" oninput="S.fe.def.sections[${i}].t=this.value" style="flex:1;font-weight:500"><span style="display:flex;flex:none">${feMv('s',i,d.sections.length)}<button class="dx" onclick="feDel('s',${i})" aria-label="削除">×</button></span></div>`;
+  if(s.sub)h+=`<div class="mute" style="margin:6px 0">説明文のまとまり（お客様は枠の中で読みます）</div>`+s.sub.map((x,j)=>`<div class="fef"><div class="row"><input value="${esc(x.t)}" placeholder="見出し" oninput="S.fe.def.sections[${i}].sub[${j}].t=this.value" style="flex:1"><button class="dx" onclick="feSubDel(${i},${j})" aria-label="削除">×</button></div><textarea rows="4" placeholder="本文（改行で段落が分かれます）" oninput="S.fe.def.sections[${i}].sub[${j}].p=this.value.split('\\n').filter(y=>y.trim())">${esc((x.p||[]).join('\n'))}</textarea></div>`).join('')+`<button class="chip" onclick="S.fe.def.sections[${i}].sub.push({t:'',p:[]});render()">＋ 説明を追加</button>`;
+  else h+=(s.f||[]).map((x,j)=>feField(i,j,x,s.f.length)).join('')+`<button class="chip" onclick="feAddF(${i})">＋ 質問を追加</button>`;
+  h+=`</div>`});
+ return h+`<div class="chips" style="margin-top:12px"><button class="chip" onclick="feAddS('f')">＋ 質問のまとまり</button><button class="chip" onclick="feAddS('sub')">＋ 説明文のまとまり</button></div>
+ <label>署名の前の文</label><textarea rows="2" oninput="S.fe.def.final=this.value">${esc(d.final||'')}</textarea>
+ <label class="fck" style="margin-top:12px"><input type="checkbox" ${f.active?'checked':''} onchange="S.fe.active=this.checked"> この用紙を使う</label>
+ <div id="fee" class="err"></div><div class="sp"></div><button class="btn" onclick="feSave()">保存</button><div class="sp"></div><button class="btn d" onclick="feRemove()">この用紙を削除</button><div class="sp"></div><button class="btn o" onclick="S.fe=null;cl()">閉じる</button>`}
+function feFix(i,j){const x=S.fe.def.sections[i].f[j];if(!x.k)x.k=feKey();if(['one','multi'].includes(x.type)&&!x.o)x.o=[];if(x.type==='agree'&&!x.items)x.items=[];if(x.type==='note'&&x.x==null)x.x=''}
+function feAddF(i){S.fe.def.sections[i].f.push({k:feKey(),l:'',type:'text',req:0});render()}
+function feAddS(t){S.fe.def.sections.push(t==='sub'?{t:'施術についてのご説明',sub:[{t:'',p:[]}]}:{t:'',f:[{k:feKey(),l:'',type:'text',req:0}]});render()}
+function feKind(k){const d=S.fe.def,a=d.kinds||[];d.kinds=a.includes(k)?a.filter(x=>x!==k):[...a,k];render()}
+function feMove(kind,i,dd){const L=kind==='s'?S.fe.def.sections:S.fe.def.sections[+kind.slice(1)].f;const j=i+dd;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];render()}
+function feDel(kind,i){if(!confirm(kind==='s'?'このまとまりを削除しますか？':'この質問を削除しますか？'))return;(kind==='s'?S.fe.def.sections:S.fe.def.sections[+kind.slice(1)].f).splice(i,1);render()}
+function feSubDel(i,j){if(!confirm('この説明を削除しますか？'))return;S.fe.def.sections[i].sub.splice(j,1);render()}
+async function feSave(){const f=S.fe;if(!f.title.trim()){$('fee').textContent='用紙の名前を入力してください';return}
+ f.def.title=f.title.trim();f.def.sections.forEach(s=>(s.f||[]).forEach(x=>{if(!x.k)x.k=feKey()}));
+ const r=await SB.from('form_templates').update({title:f.title.trim(),def:f.def,active:f.active,updated_at:new Date().toISOString()}).eq('id',f.id);if(r.error){$('fee').textContent='保存できませんでした';return}
+ S.fe=null;await refresh();cl();alert('用紙を保存しました')}
+async function feRemove(){if(!confirm('この用紙を削除しますか？（すでに記入された内容は残ります）'))return;const r=await SB.from('form_templates').delete().eq('id',S.fe.id);if(r.error){alert('削除できませんでした');return}S.fe=null;await refresh();cl()}
+async function feNew(copyId){const src=copyId&&ftRow(copyId),id='f'+Date.now().toString(36),
+ def=src?JSON.parse(JSON.stringify(src.def)):{kind:'counsel',kinds:[],short:'',intro:'本日はご来店いただきありがとうございます。',sections:[{t:'お客様情報',f:[{k:'name',l:'お名前',type:'text',req:1,ph:'山田 花子'},{k:'kana',l:'フリガナ',type:'text',req:1,ph:'ヤマダ ハナコ'},{k:'tel',l:'電話番号',type:'tel',req:1,ph:'090-0000-0000'}]},{t:'同意事項',f:[{k:'agree',l:'',type:'agree',items:[]}]}],final:'上記内容を確認し、施術に同意します。'},
+ title=src?src.title+'（コピー）':'新しい用紙';def.title=title;
+ const r=await SB.from('form_templates').insert({id,title,def,sort:Math.max(0,...(D.ft||[]).map(x=>x.sort||0))+1,active:true});if(r.error){alert('作れませんでした');return}await refresh();op({t:'fe',id})}
+/* ===== Face IDロック（このスマホの管理アプリにかけるカギ） ===== */
+const LK_KEY='limoo_lock';
+const lkGet=()=>{try{return JSON.parse(localStorage.getItem(LK_KEY)||'null')}catch(e){return null}};
+const lkSet=v=>{try{v?localStorage.setItem(LK_KEY,JSON.stringify(v)):localStorage.removeItem(LK_KEY)}catch(e){}};
+const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const ub64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4)),c=>c.charCodeAt(0));
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+async function lkSupported(){try{return !!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch(e){return false}}
+async function lkEnable(){if(!await lkSupported()){alert('このスマホ（またはこの画面）では、Face IDロックが使えません。ホーム画面に追加した管理アプリか、Safariで開いてお試しください。');return}
+ try{const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:BR.name+' 管理'},user:{id:rnd(16),name:'admin',displayName:BR.name+' 管理者'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000,attestation:'none'}});
+  if(!c)throw 0;lkSet({cred:b64u(c.rawId),min:(lkGet()||{}).min??5});render();alert('Face IDロックをオンにしました')}catch(e){alert('Face IDの登録ができませんでした。もう一度お試しください。')}}
+function lkDisable(){if(!confirm('Face IDロックをオフにしますか？'))return;lkSet(null);render()}
+function lkMin(v){const l=lkGet();if(l){l.min=+v;lkSet(l)}}
+async function lkUnlock(){const l=lkGet();if(!l){S.locked=false;render();return}
+ try{const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:ub64(l.cred),transports:['internal']}],userVerification:'required',timeout:60000}});
+  if(a){S.locked=false;S.hiddenAt=0;render()}}catch(e){S.lkErr='解除できませんでした。もう一度お試しください。';render()}}
+async function lkRelogin(){if(!confirm('ログアウトして、パスワードでログインし直しますか？'))return;S.locked=false;S.lkErr='';await logout()}
+function lockHtml(){return `<div class="lg">${logoHtml()}<p class="mute">管理画面はロックされています</p><div style="font-size:40px;margin:26px 0 6px">🔒</div><button class="btn" onclick="lkUnlock()">Face IDでロックを解除</button>${S.lkErr?`<p class="err" style="margin-top:10px">${S.lkErr}</p>`:''}<div class="sp"></div><button class="btn o" onclick="lkRelogin()">パスワードでログインし直す</button></div>`}
+function lkWatch(){if(!document.addEventListener)return;document.addEventListener('visibilitychange',()=>{const l=lkGet();if(!l||!AUTH.user)return;
+ if(document.visibilityState==='hidden'){S.hiddenAt=Date.now();if(l.min===0){S.locked=true;render()}}
+ else if(S.hiddenAt&&Date.now()-S.hiddenAt>=l.min*60000){S.locked=true;S.lkErr='';render()}})}
+function lkSetHtml(){const l=lkGet();return `<h3 style="font-weight:300;margin:34px 0 4px">Face IDロック</h3><p class="mute">管理画面を開くときや、しばらく閉じていたあとに、Face IDで本人確認します。このスマホだけの設定です。</p>`
+ +(l?`<div class="hr"><span style="flex:1">ロックするまでの時間</span><select onchange="lkMin(this.value)" style="width:auto;padding:8px">${[[0,'閉じたらすぐ'],[1,'1分'],[5,'5分'],[15,'15分'],[60,'1時間']].map(([v,t])=>`<option value="${v}" ${l.min===v?'selected':''}>${t}</option>`).join('')}</select></div><div class="sp"></div><button class="btn o" onclick="lkDisable()">Face IDロックをオフにする</button>`
+ :`<div class="sp"></div><button class="btn" onclick="lkEnable()">Face IDロックをオンにする</button>`)}
 async function mkQR(k){if(typeof LIFF_ID==='undefined'||!LIFF_ID||String(LIFF_ID).startsWith('YOUR')){alert('LINEの設定（LIFF）がまだ完了していません');return}
  const ids=custs().find(x=>x.k===k).ids,r=await SB.from('line_link_tokens').insert({customer_ids:ids}).select('token').single();
  if(r.error||!r.data){alert('QRを作れませんでした');return}S.qr={k,url:`https://liff.line.me/${LIFF_ID}/link.html?t=${r.data.token||r.data.id}`};render()}
@@ -431,6 +512,18 @@ function setViewAll(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set
  h+=[1,2,3,4,5,6,0].map(d=>{const c=F.closedW.includes(d),x=F.hours[d]||{open:'09:00',close:'20:00'};
   return `<div class="hr"><b style="width:22px;font-weight:400">${WD[d]}</b>${c?`<span class="mute" style="flex:1">定休日</span>`:`${tm(x.open,`S.sf.hours[${d}].open=this.value`)}<span>〜</span>${tm(x.close,`S.sf.hours[${d}].close=this.value`)}`}<label class="mute" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" style="width:20px;height:20px" ${c?'checked':''} onchange="tgW(${d},this.checked)">休み</label></div>`}).join('');
  h+=`<div id="se" class="err"></div><div class="sp"></div><button class="btn" onclick="saveSet()">営業時間を保存</button>`;
+ {const b=S.bf||(S.bf={name:BR.name,sub:BR.sub,acc:(D.set.brand||{}).acc||'#8C7F72',sel:(D.set.brand||{}).sel||'#9FC3DA'});
+ h+=`<h3 style="font-weight:300;margin:34px 0 4px">お店の情報・デザイン</h3><p class="mute">予約画面・LINEのページ・カウンセリングの画面に反映されます</p>
+ <label>お店の名前</label><input value="${esc(b.name)}" oninput="S.bf.name=this.value">
+ <label>名前の下の小さな文字（任意）</label><input value="${esc(b.sub)}" placeholder="例）eye / brow" oninput="S.bf.sub=this.value">
+ <label>ロゴの画像（任意・背景が透明なPNGがおすすめ）</label><div class="lgp">${BR.logo?`<img src="${BR.logo}" alt="">`:'<span class="mute">未設定（お店の名前を文字で表示します）</span>'}</div>
+ <button class="chip" onclick="document.getElementById('lgf').click()">${BR.logo?'ロゴを変更':'ロゴを登録'}</button>${BR.logo?' <button class="chip" onclick="logoDel()">ロゴを外す</button>':''}<input id="lgf" type="file" accept="image/*" style="display:none" onchange="logoUp(this)">
+ <label>色の組み合わせ</label><div class="chips">${BPRE.map(x=>`<button class="cp ${b.acc===x[1]&&b.sel===x[2]?'on':''}" onclick="S.bf.acc='${x[1]}';S.bf.sel='${x[2]}';render()"><span class="sw" style="background:${x[1]}"></span><span class="sw" style="background:${x[2]}"></span>${x[0]}</button>`).join('')}</div>
+ <div class="hr"><span style="flex:1">ボタンの色</span><input type="color" value="${b.acc}" oninput="S.bf.acc=this.value" style="width:64px;height:42px;padding:2px"></div>
+ <div class="hr"><span style="flex:1">選んだところの色</span><input type="color" value="${b.sel}" oninput="S.bf.sel=this.value" style="width:64px;height:42px;padding:2px"></div>
+ <div id="be" class="err"></div><div class="sp"></div><button class="btn" onclick="saveBrand()">お店の情報を保存</button>`}
+ h+=lkSetHtml();
+ h+=`<h3 style="font-weight:300;margin:34px 0 4px">カウンセリング・同意書</h3><p class="mute">用紙の質問や説明の文を、自由に編集できます</p>`+(D.ft||[]).map(f=>`<div class="it" style="align-items:center;cursor:default"><span style="flex:1;min-width:0">${esc(f.title)}<div class="mute">${f.active?'使用中':'使っていない'}${((f.def&&f.def.kinds)||[]).length?'　'+f.def.kinds.map(k=>KT[k]||k).join('・'):''}</div></span><span style="display:flex;gap:6px;flex:none"><button class="chip" onclick="op({t:'fe',id:'${f.id}'})">編集</button><button class="chip" onclick="feNew('${f.id}')">コピー</button></span></div>`).join('')+`<button class="chip" style="margin-top:8px" onclick="feNew()">＋ 新しい用紙を作る</button>`;
  h+=`<h3 style="font-weight:300;margin:34px 0 4px">お客様への案内</h3><label>予約の確認画面の注意事項（お客様は「確認しました」にチェックしてから確定します）</label><textarea id="nr" rows="7">${esc(D.set.nr||'')}</textarea><label>前日のリマインドの最初の文（LINEで太字で出ます）</label><textarea id="rt" rows="2" placeholder="明日はご予約日です">${esc(D.set.rt||'')}</textarea><label>ご来店前のご案内（予約完了の画面と、前日のLINEに出ます）</label><textarea id="nb" rows="5">${esc(D.set.nb||'')}</textarea><div class="mute" style="margin-top:14px">前日のLINEのイメージ</div><div class="ntc" style="margin-top:6px"><div style="font-weight:500">${esc(D.set.rt||'明日はご予約日です')}</div><div class="mute" style="margin-top:4px">日時：10/15(水) 14:00〜15:30<br>メニュー：フラットラッシュ 120本<br>料金：¥6,100</div>${D.set.nb?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">【ご来店前のご案内】<br>${esc(D.set.nb).replace(/\n/g,'<br>')}</div>`:''}</div><div id="ne" class="err"></div><div class="sp"></div><button class="btn" onclick="saveNotice()">案内を保存</button>`;
  {const iv=D.set.aiv||{},ns=[...Array(12)].map((_,i)=>i+1);
  h+=`<h3 style="font-weight:300;margin:34px 0 4px">会計後のお礼メッセージ</h3><p class="mute">会計を確定すると、LINE連携しているお客様に自動で送ります</p>
@@ -453,11 +546,11 @@ function setViewAll(){const F=S.sf||(S.sf={hours:JSON.parse(JSON.stringify(D.set
  (up.length?up.map(r=>`<div class="kv"><span>${r.date.replace(/-/g,'/')}（${WD[new Date(r.date+'T00:00:00').getDay()]}）</span><span>${esc(r.note||'')}　<button class="chip" onclick="delCD('${r.date}')">削除</button></span></div>`).join(''):`<p class="mute">予定されている臨時休業日はありません</p>`);
  return h}
 /* ===== 設定：項目ごとに分けて表示 ===== */
-const ST_ORDER=['営業時間','臨時休業日','予約受付のルール','お客様への案内','会計後のお礼メッセージ','支払い方法'];
+const ST_ORDER=['Face IDロック','お店の情報・デザイン','営業時間','臨時休業日','予約受付のルール','お客様への案内','カウンセリング・同意書','会計後のお礼メッセージ','支払い方法'];
 function hoursSum(){const F=D.set,o=[1,2,3,4,5,6,0],m=new Map();o.forEach(d=>{if(F.closedW.includes(d))return;const x=F.hours[d]||{},v=`${String(x.open).replace(/^0/,'')}〜${String(x.close).replace(/^0/,'')}`;if(!m.has(v))m.set(v,[]);m.get(v).push(d)});
  const runs=ds=>{const r=[];ds.forEach(d=>{const i=o.indexOf(d),l=r[r.length-1];if(l&&o.indexOf(l[l.length-1])===i-1)l.push(d);else r.push([d])});return r.map(x=>x.length>2?WD[x[0]]+'〜'+WD[x[x.length-1]]:x.map(d=>WD[d]).join('・')).join('・')};
  return [...m].map(([v,ds])=>`${runs(ds)} ${v}`).join('、')+(F.closedW.length?`／定休日 ${o.filter(d=>F.closedW.includes(d)).map(d=>WD[d]).join('・')}`:'')}
-function stSum(t){const s=D.set;if(t==='営業時間')return hoursSum();
+function stSum(t){const s=D.set;if(t==='Face IDロック'){const l=lkGet();return l?`オン（${l.min===0?'閉じたらすぐ':l.min>=60?'1時間':l.min+'分'}でロック）`:'オフ'}if(t==='お店の情報・デザイン')return BR.name+(BR.logo?'（ロゴあり）':'');if(t==='カウンセリング・同意書')return `${FT().length}種類の用紙`;if(t==='営業時間')return hoursSum();
  if(t==='臨時休業日'){const u=(s.closedList||[]).filter(r=>r.date>=TODAY);return u.length?`${u.length}日（${u.slice(0,2).map(r=>r.date.slice(5).replace('-','/')).join('、')}${u.length>2?' ほか':''}）`:'予定なし'}
  if(t==='予約受付のルール')return `${s.maxDays}日先まで／当日は${s.sameday?(s.lead>=60?s.lead/60+'時間':s.lead+'分')+'前まで':'受け付けない'}${s.tax?'／税込表示':''}`;
  if(t==='お客様への案内')return '予約時の注意事項・前日のリマインド・ご来店前のご案内';
@@ -480,7 +573,7 @@ async function addCD(){const d=$('cdD').value,n=$('cdN').value.trim();if(!d){$('
  const r=await SB.from('closed_dates').insert({date:d,note:n||null});if(r.error){$('ce').textContent=r.error.code==='23505'?'すでに登録されています':'追加できませんでした';return}await refresh()}
 async function delCD(d){if(!confirm('この臨時休業日を削除しますか？'))return;const r=await SB.from('closed_dates').delete().eq('date',d);if(r.error){alert('削除できませんでした');return}await refresh()}
 function op(s){if(s.t==='f')S.fc=null;S.sheet=s;render()}
-function cl(){S.sheet=null;S.qr=null;S.kf=null;S.pf=null;S.fq=null;S.fvd=null;render()}
+function cl(){S.sheet=null;S.qr=null;S.kf=null;S.pf=null;S.fq=null;S.fvd=null;S.fe=null;render()}
 function sheet(){
  const s=S.sheet,E=$('sheet');if(!s){E.innerHTML='';return}
  let h='';
@@ -500,6 +593,7 @@ function sheet(){
 
  if(s.t==='gr'){const g=D[s.k][s.g],isM=s.k==='cat',cur=(D.set.optMap||{})[g.n]||'';
   h=`<h3>カテゴリーの編集</h3><label>カテゴリー名</label><input id="gn" value="${esc(g.n)}">`+(isM?`<label>このメニューで表示するオプション</label><select id="go"><option value="">なし</option>${D.opts.map(o=>`<option ${o.n===cur?'selected':''}>${esc(o.n)}</option>`).join('')}</select>`:'')+`${isM?catPhotoHtml(g.n):''}<p class="mute">変更は、お客様の予約画面にもすぐ反映されます。</p><div id="fe" class="err"></div><div class="sp"></div><button class="btn" onclick="saveGr()">保存</button><div class="sp"></div><button class="btn o" onclick="cl()">閉じる</button>`}
+ if(s.t==='fe'){if(!S.fe||S.fe.id!==s.id){const r=ftRow(s.id);if(!r){cl();return}S.fe={id:r.id,title:r.title,active:r.active,def:JSON.parse(JSON.stringify(r.def))}}h=feHtml()}
  if(s.t==='fv'){if(!S.fvd||S.fvd.id!==s.id){h='<p class="mute" style="text-align:center;padding:30px 0">読み込み中…</p>';if(!S.fvl||S.fvl!==s.id){S.fvl=s.id;fvLoad(s.id)}}else h=fvHtml(S.fvd)}
  if(s.t==='pay'){const b=D.bk.find(x=>x.id===s.id);if(!b){cl();return}
   if(!S.pf||S.pf.id!==b.id){const p=D.pay[b.id];S.pf=p?{id:b.id,sub:p.subtotal,ds:JSON.parse(JSON.stringify(p.discounts||[])),g:JSON.parse(JSON.stringify(p.goods||[])),m:p.method||'',memo:p.memo||''}:{id:b.id,sub:b.price,ds:[],g:[],m:D.set.pays[0]||'',memo:''}}
